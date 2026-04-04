@@ -71,6 +71,10 @@ class Orchestrator:
             context = self._run_agent("quality_checker", context)
             qc = context.get("quality_checker", {})
             score = qc.get("total_score", 0)
+            agent_scores = qc.get("agent_scores", {})
+
+            # 개별 에이전트 점수 표시
+            self._emit_agent_scores(agent_scores, score)
 
             if qc.get("pass", True):
                 self.emit("status", {
@@ -88,7 +92,6 @@ class Orchestrator:
 
             # 재시도: 낮은 점수 에이전트만 피드백과 함께 재실행
             retry_agents = qc.get("retry_agents", [])
-            agent_scores = qc.get("agent_scores", {})
             self.emit("status", {
                 "agent": "quality_checker",
                 "message": (
@@ -96,6 +99,9 @@ class Orchestrator:
                     f"{retry_agents} 재실행 중... (시도 {attempt + 1}/{MAX_RETRIES})"
                 ),
             })
+
+            # 재시도 에이전트별 피드백 상세 표시
+            self._emit_retry_feedback(retry_agents, agent_scores)
 
             for agent_name in ANALYSIS_ORDER:
                 if agent_name not in retry_agents:
@@ -121,6 +127,81 @@ class Orchestrator:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _emit_agent_scores(self, agent_scores: Dict[str, Any], total_score: int) -> None:
+        """각 에이전트의 개별 점수와 피드백을 상세히 표시"""
+        if not agent_scores:
+            return
+
+        # 헤더 메시지
+        self.emit("status", {
+            "agent": "quality_checker",
+            "message": f"📊 [Quality Check] 점수: {total_score}점 (기준: {QUALITY_THRESHOLD}점)",
+        })
+
+        # 각 에이전트의 점수와 피드백 표시
+        for agent_name in ANALYSIS_ORDER:
+            if agent_name not in agent_scores:
+                continue
+
+            score_data = agent_scores[agent_name]
+            agent_score = score_data.get("score", 0)
+            feedback = score_data.get("feedback", "")
+
+            # 점수에 따른 indicator 설정
+            if agent_score >= 90:
+                indicator = "✅"
+            elif agent_score >= 80:
+                indicator = "⚠️"
+            else:
+                indicator = "❌"
+
+            # 에이전트 이름 매핑
+            agent_label = {
+                "planner": "기획자",
+                "developer": "개발자",
+                "impact_analyzer": "영향도 분석",
+                "reviewer": "검토자",
+            }.get(agent_name, agent_name)
+
+            message = f"  ├─ {agent_label}: {agent_score}점 {indicator}"
+            if feedback:
+                message += f"\n     피드백: \"{feedback}\""
+
+            self.emit("status", {
+                "agent": "quality_checker",
+                "message": message,
+            })
+
+    def _emit_retry_feedback(self, retry_agents: List[str], agent_scores: Dict[str, Any]) -> None:
+        """재시도할 에이전트의 피드백을 상세히 표시"""
+        if not retry_agents:
+            return
+
+        self.emit("status", {
+            "agent": "quality_checker",
+            "message": f"🔧 [Feedback 적용] 다음 에이전트 재실행 예정:",
+        })
+
+        for agent_name in retry_agents:
+            agent_label = {
+                "planner": "기획자",
+                "developer": "개발자",
+                "impact_analyzer": "영향도 분석",
+                "reviewer": "검토자",
+            }.get(agent_name, agent_name)
+
+            feedback = agent_scores.get(agent_name, {}).get("feedback", "")
+            if feedback:
+                self.emit("status", {
+                    "agent": "quality_checker",
+                    "message": f"  ├─ {agent_label}: \"{feedback}\"",
+                })
+            else:
+                self.emit("status", {
+                    "agent": "quality_checker",
+                    "message": f"  ├─ {agent_label}",
+                })
 
     def _run_agent(self, agent_name: str, context: Dict[str, Any], feedback: str = "") -> Dict[str, Any]:
         """단일 에이전트 실행 + 이벤트 발행."""

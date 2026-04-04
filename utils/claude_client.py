@@ -94,11 +94,69 @@ class ClaudeClient:
     @staticmethod
     def _mock_json_response(system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         lower = (system_prompt + "\n" + user_prompt).lower()
+
+        # 더 구체적인 조건을 먼저 확인 (quality는 planner 체크보다 먼저 와야 함)
         if "selected_agents" in lower or "orchestrator" in lower:
             return {
                 "selected_agents": ["planner", "developer", "reviewer", "documenter"],
                 "reason": "요구사항 분석, 기술 설계, 리스크 검토, 문서화가 모두 필요한 기능 추가 요청입니다.",
             }
+        if "quality" in lower or "strict quality" in lower:
+            return {
+                "total_score": 88,
+                "pass": False,
+                "agent_scores": {
+                    "planner": {"score": 92, "feedback": "요구사항 추출은 충분하나 비기능 요구사항에 응답 시간 기준이 누락되었습니다."},
+                    "developer": {"score": 80, "feedback": "DB 스키마에 인덱스 전략이 없고 파일 저장 경로 관리 방식이 명시되지 않았습니다."},
+                    "impact_analyzer": {"score": 91, "feedback": "파일 영향도는 잘 분석되었으나 공통 유틸리티(FileUtil.java) 영향이 누락되었습니다."},
+                    "reviewer": {"score": 89, "feedback": "보안 리스크는 잘 도출되었으나 업로드 실패 시 트랜잭션 롤백 시나리오가 빠졌습니다."},
+                },
+                "retry_agents": ["developer"],
+                "overall_feedback": "전체적으로 양호하나 developer 에이전트의 DB 인덱스 전략과 파일 경로 관리 방식이 구체적이지 않습니다.",
+            }
+        if "chat" in lower or "requirements refinement" in lower:
+            # 질문 내용에 따라 다른 응답 제공
+            if "s3" in lower or "저장소" in lower or "바꾸면" in lower:
+                return {
+                    "type": "reanalysis",
+                    "requires_reanalysis": True,
+                    "answer": "S3 저장소로 변경할 경우, 다음 부분이 영향받습니다:\n\n1. **AttachService.java**: S3 SDK(AWS SDK for Java) 의존성 추가, S3 업로드/다운로드 로직 변경\n2. **BoardController.java**: 로컬 경로 대신 S3 URL 반환\n3. **system_setting**: 로컬 경로 설정 대신 S3 버킷명, IAM 권한 설정 추가\n4. **보안**: IAM 권한 기반 접근 제어로 파일 접근 보안 강화\n5. **배포 일정**: S3 설정 및 테스트로 인해 1일 추가\n\n영향도: MEDIUM → HIGH로 상향 조정",
+                    "reanalyzed_impact": {
+                        "impact_summary": {
+                            "total_files": 6,
+                            "new_files": 1,
+                            "modified_files": 5,
+                            "impact_level": "HIGH"
+                        },
+                        "file_impacts": {
+                            "service": [
+                                {"file": "AttachService.java", "change_type": "MODIFY", "methods": ["uploadAttach", "downloadAttach"], "reason": "S3 SDK 추가, 로직 변경"}
+                            ],
+                            "controller": [
+                                {"file": "BoardController.java", "change_type": "MODIFY", "methods": ["downloadAttach"], "reason": "S3 URL 반환"}
+                            ],
+                            "mapper": [
+                                {"file": "system_setting_mapper.xml", "change_type": "MODIFY", "queries": ["updateS3Settings"], "reason": "S3 설정 추가"}
+                            ]
+                        }
+                    },
+                    "follow_up_suggestions": [
+                        "S3 대신 Azure Blob Storage로 하면?",
+                        "기존 로컬 첨부는 어떻게 마이그레이션?",
+                        "비용 예상은?"
+                    ]
+                }
+            else:
+                return {
+                    "type": "answer",
+                    "requires_reanalysis": False,
+                    "answer": "현재 분석에 따르면, 첨부파일 기능은 BoardController, AttachService, AttachDao, AttachMapper.xml 등 5개 주요 파일에 영향을 미칩니다. 보안 위험은 파일명 기반 경로조작 방지와 콘텐츠 타입 스푸핑 대응이 주요 항목입니다. 일정은 중간 난이도(M)로 약 4일 소요될 것으로 예상됩니다.",
+                    "follow_up_suggestions": [
+                        "보안 위험 상세 설명",
+                        "다른 게시판도 함께 적용?",
+                        "테스트 전략은?"
+                    ]
+                }
         if "planner" in lower:
             return {
                 "core_requirements": [
@@ -220,62 +278,6 @@ class ClaudeClient:
                     "BoardController.java 수정 → boardWrite.jsp / boardDetail.jsp 화면 수정"
                 ),
             }
-        if "quality" in lower or "strict quality" in lower:
-            return {
-                "total_score": 88,
-                "pass": False,
-                "agent_scores": {
-                    "planner": {"score": 92, "feedback": "요구사항 추출은 충분하나 비기능 요구사항에 응답 시간 기준이 누락되었습니다."},
-                    "developer": {"score": 80, "feedback": "DB 스키마에 인덱스 전략이 없고 파일 저장 경로 관리 방식이 명시되지 않았습니다."},
-                    "impact_analyzer": {"score": 91, "feedback": "파일 영향도는 잘 분석되었으나 공통 유틸리티(FileUtil.java) 영향이 누락되었습니다."},
-                    "reviewer": {"score": 89, "feedback": "보안 리스크는 잘 도출되었으나 업로드 실패 시 트랜잭션 롤백 시나리오가 빠졌습니다."},
-                },
-                "retry_agents": ["developer"],
-                "overall_feedback": "전체적으로 양호하나 developer 에이전트의 DB 인덱스 전략과 파일 경로 관리 방식이 구체적이지 않습니다.",
-            }
-        if "chat" in lower or "requirements refinement" in lower:
-            # 질문 내용에 따라 다른 응답 제공
-            if "s3" in lower or "저장소" in lower or "바꾸면" in lower:
-                return {
-                    "type": "reanalysis",
-                    "requires_reanalysis": True,
-                    "answer": "S3 저장소로 변경할 경우, 다음 부분이 영향받습니다:\n\n1. **AttachService.java**: S3 SDK(AWS SDK for Java) 의존성 추가, S3 업로드/다운로드 로직 변경\n2. **BoardController.java**: 로컬 경로 대신 S3 URL 반환\n3. **system_setting**: 로컬 경로 설정 대신 S3 버킷명, IAM 권한 설정 추가\n4. **보안**: IAM 권한 기반 접근 제어로 파일 접근 보안 강화\n5. **배포 일정**: S3 설정 및 테스트로 인해 1일 추가\n\n영향도: MEDIUM → HIGH로 상향 조정",
-                    "reanalyzed_impact": {
-                        "impact_summary": {
-                            "total_files": 6,
-                            "new_files": 1,
-                            "modified_files": 5,
-                            "impact_level": "HIGH"
-                        },
-                        "file_impacts": {
-                            "service": [
-                                {"file": "AttachService.java", "change_type": "MODIFY", "methods": ["uploadAttach", "downloadAttach"], "reason": "S3 SDK 추가, 로직 변경"}
-                            ],
-                            "controller": [
-                                {"file": "BoardController.java", "change_type": "MODIFY", "methods": ["downloadAttach"], "reason": "S3 URL 반환"}
-                            ],
-                            "mapper": [
-                                {"file": "system_setting_mapper.xml", "change_type": "MODIFY", "queries": ["updateS3Settings"], "reason": "S3 설정 추가"}
-                            ]
-                        }
-                    },
-                    "follow_up_suggestions": [
-                        "S3 대신 Azure Blob Storage로 하면?",
-                        "기존 로컬 첨부는 어떻게 마이그레이션?",
-                        "비용 예상은?"
-                    ]
-                }
-            else:
-                return {
-                    "type": "answer",
-                    "requires_reanalysis": False,
-                    "answer": "현재 분석에 따르면, 첨부파일 기능은 BoardController, AttachService, AttachDao, AttachMapper.xml 등 5개 주요 파일에 영향을 미칩니다. 보안 위험은 파일명 기반 경로조작 방지와 콘텐츠 타입 스푸핑 대응이 주요 항목입니다. 일정은 중간 난이도(M)로 약 4일 소요될 것으로 예상됩니다.",
-                    "follow_up_suggestions": [
-                        "보안 위험 상세 설명",
-                        "다른 게시판도 함께 적용?",
-                        "테스트 전략은?"
-                    ]
-                }
         return {"message": "mock response"}
 
     @staticmethod
