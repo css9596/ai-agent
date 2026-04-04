@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { @apply scroll-smooth; }
+
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+
+        .transition-smooth { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
+    <div class="flex flex-col lg:flex-row min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-full lg:w-64 bg-slate-800 border-r border-slate-700 p-4 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
+            <div class="flex items-center gap-3 mb-8 p-4 bg-slate-700 rounded-xl">
+                <i class="fas fa-chart-line text-2xl text-blue-400"></i>
+                <div>
+                    <h1 class="font-bold text-white">관리자</h1>
+                    <p class="text-xs text-gray-400">대시보드</p>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <a onclick="showSection('dashboard')" class="nav-link block w-full px-4 py-3 rounded-lg bg-slate-700 text-white font-medium transition-smooth cursor-pointer hover:bg-blue-600">
+                    <i class="fas fa-chart-bar mr-2 w-5"></i> 대시보드
+                </a>
+                <a onclick="showSection('history')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
+                    <i class="fas fa-history mr-2 w-5"></i> 분석 이력
+                </a>
+                <a onclick="showSection('logs')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
+                    <i class="fas fa-terminal mr-2 w-5"></i> 로그
+                </a>
+                <a onclick="showSection('settings')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
+                    <i class="fas fa-cog mr-2 w-5"></i> 설정
+                </a>
+                <a onclick="showSection('health')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
+                    <i class="fas fa-heartbeat mr-2 w-5"></i> 헬스 체크
+                </a>
+            </nav>
+
+            <div class="mt-8 p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
+                <p class="text-sm text-white font-semibold mb-2">💡 팁</p>
+                <p class="text-xs text-blue-100">대시보드는 5초마다 자동으로 새로고침됩니다.</p>
+            </div>
+
+            <div class="mt-4">
+                <a href="/" class="block w-full px-4 py-2 bg-slate-700 text-gray-300 rounded-lg text-center font-medium transition-smooth hover:bg-slate-600">
+                    ← 메인으로 돌아가기
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-x-hidden">
+            <div class="p-4 lg:p-8">
+                <!-- 대시보드 -->
+                <section id="section-dashboard" class="space-y-8">
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 class="text-4xl font-bold text-white mb-2">대시보드</h1>
+                            <p class="text-gray-400">시스템 성능 및 분석 통계를 실시간으로 확인하세요</p>
+                        </div>
+                        <button onclick="loadDashboard()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-smooth flex items-center gap-2">
+                            <i class="fas fa-sync"></i> 새로고침
+                        </button>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-xl">
+                            <div class="flex justify-between items-start mb-4">
+                                <i class="fas fa-chart-bar text-3xl opacity-20"></i>
+                                <span class="text-sm bg-blue-500 px-3 py-1 rounded-full">전체</span>
+                            </div>
+                            <h3 class="text-sm font-semibold text-blue-100 mb-1">총 분석</h3>
+                            <p id="stat-total" class="text-4xl font-bold">0</p>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-green-600 to-emerald-600 rounded-2xl p-6 text-white shadow-xl">
+                            <div class="flex justify-between items-start mb-4">
+                                <i class="fas fa-check-circle text-3xl opacity-20"></i>
+                                <span class="text-sm bg-green-500 px-3 py-1 rounded-full">성공</span>
+                            </div>
+                            <h3 class="text-sm font-semibold text-green-100 mb-1">완료됨</h3>
+                            <p id="stat-completed" class="text-4xl font-bold">0</p>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-yellow-600 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
+                            <div class="flex justify-between items-start mb-4">
+                                <i class="fas fa-clock text-3xl opacity-20"></i>
+                                <span class="text-sm bg-yellow-500 px-3 py-1 rounded-full">진행</span>
+                            </div>
+                            <h3 class="text-sm font-semibold text-yellow-100 mb-1">진행 중</h3>
+                            <p id="stat-pending" class="text-4xl font-bold">0</p>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-red-600 to-pink-600 rounded-2xl p-6 text-white shadow-xl">
+                            <div class="flex justify-between items-start mb-4">
+                                <i class="fas fa-exclamation-circle text-3xl opacity-20"></i>
+                                <span class="text-sm bg-red-500 px-3 py-1 rounded-full">실패</span>
+                            </div>
+                            <h3 class="text-sm font-semibold text-red-100 mb-1">실패</h3>
+                            <p id="stat-failed" class="text-4xl font-bold">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Metrics -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                            <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
+                                <i class="fas fa-percentage text-blue-400"></i> 성공률
+                            </h3>
+                            <p id="queue-success-rate" class="text-4xl font-bold text-blue-400">0%</p>
+                            <p class="text-gray-400 text-sm mt-2">완료된 분석 중</p>
+                        </div>
+
+                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                            <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
+                                <i class="fas fa-hourglass-end text-green-400"></i> 평균 시간
+                            </h3>
+                            <p id="queue-avg-duration" class="text-4xl font-bold text-green-400">0초</p>
+                            <p class="text-gray-400 text-sm mt-2">분석당 평균</p>
+                        </div>
+
+                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                            <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
+                                <i class="fas fa-zap text-yellow-400"></i> 진행 상황
+                            </h3>
+                            <p class="text-4xl font-bold text-yellow-400"><span id="queue-running">0</span>/<span id="queue-max">3</span></p>
+                            <p class="text-gray-400 text-sm mt-2">동시 실행 중</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 분석 이력 -->
+                <section id="section-history" class="hidden space-y-8">
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold text-white mb-2">분석 이력</h1>
+                            <p class="text-gray-400">모든 분석 작업의 이력을 관리하세요</p>
+                        </div>
+                        <button onclick="loadHistory()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-smooth flex items-center gap-2">
+                            <i class="fas fa-sync"></i> 새로고침
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-slate-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">파일명</th>
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">파일 크기</th>
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">상태</th>
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">소요 시간</th>
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">결과</th>
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">생성 일시</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-table" class="divide-y divide-slate-700">
+                                    <!-- Rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="pagination" class="flex justify-center items-center gap-4">
+                        <button class="btn-pagination" id="prevPageBtn" onclick="loadHistoryPage(historyPage - 1)">← 이전</button>
+                        <span id="pageInfo" class="text-gray-400 font-semibold px-6 py-2">페이지</span>
+                        <button class="btn-pagination" id="nextPageBtn" onclick="loadHistoryPage(historyPage + 1)">다음 →</button>
+                    </div>
+                </section>
+
+                <!-- 로그 -->
+                <section id="section-logs" class="hidden space-y-8">
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold text-white mb-2">로그</h1>
+                            <p class="text-gray-400">실시간 시스템 로그를 확인하세요</p>
+                        </div>
+                        <button onclick="loadLogs()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-smooth flex items-center gap-2">
+                            <i class="fas fa-sync"></i> 새로고침
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-900 rounded-2xl border border-slate-700 p-6 font-mono text-sm h-96 overflow-y-auto" id="log-viewer"></div>
+                </section>
+
+                <!-- 설정 -->
+                <section id="section-settings" class="hidden space-y-8">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2">시스템 설정</h1>
+                        <p class="text-gray-400">현재 설정 상태를 확인하세요</p>
+                    </div>
+
+                    <div id="settings-content" class="space-y-6">
+                        <!-- Settings will be inserted here -->
+                    </div>
+                </section>
+
+                <!-- 헬스 체크 -->
+                <section id="section-health" class="hidden space-y-8">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2">시스템 상태</h1>
+                        <p class="text-gray-400">모든 서비스의 상태를 확인하세요</p>
+                    </div>
+
+                    <div id="health-content" class="space-y-6">
+                        <!-- Health status will be inserted here -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <style>
+        .nav-link { color: inherit; }
+        .nav-link.active { @apply bg-blue-600 text-white; }
+        .btn-pagination {
+            @apply px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-smooth disabled:opacity-50 disabled:cursor-not-allowed;
+        }
+    </style>
+
+    <script>
+        let historyPage = 0;
+        let historyLimit = 20;
+        let historyTotal = 0;
+
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '-';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function showSection(sectionName) {
+            document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`section-${sectionName}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            event.target.closest('.nav-link').classList.add('active');
+
+            if (sectionName === 'dashboard') loadDashboard();
+            else if (sectionName === 'history') loadHistory();
+            else if (sectionName === 'logs') loadLogs();
+            else if (sectionName === 'settings') loadSettings();
+            else if (sectionName === 'health') loadHealth();
+        }
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/admin/dashboard');
+                const data = await response.json();
+
+                document.getElementById('stat-total').textContent = data.statistics.total;
+                document.getElementById('stat-completed').textContent = data.statistics.completed;
+                document.getElementById('stat-pending').textContent = data.queue.pending;
+                document.getElementById('stat-failed').textContent = data.statistics.failed;
+                document.getElementById('queue-success-rate').textContent = `${data.statistics.success_rate}%`;
+                document.getElementById('queue-avg-duration').textContent = `${data.statistics.avg_duration_seconds}초`;
+                document.getElementById('queue-running').textContent = `${data.queue.running}`;
+                document.getElementById('queue-max').textContent = `${data.queue.max_concurrent}`;
+            } catch (error) {
+                console.error('대시보드 로드 실패:', error);
+            }
+        }
+
+        async function loadHistoryPage(page) {
+            if (page < 0) return;
+
+            historyPage = page;
+            const offset = page * historyLimit;
+
+            try {
+                const response = await fetch(`/api/history?limit=${historyLimit}&offset=${offset}`);
+                const data = await response.json();
+
+                historyTotal = data.total;
+                const tbody = document.querySelector('#history-table tbody') || document.getElementById('history-table');
+                tbody.innerHTML = '';
+
+                data.analyses.forEach(analysis => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-slate-700 transition-smooth';
+
+                    let downloadCell = '-';
+                    if (analysis.output_file) {
+                        const fileName = analysis.output_file.split('/').pop();
+                        downloadCell = `<a href="/api/download/${fileName}" target="_blank" class="text-blue-400 hover:text-blue-300 font-semibold"><i class="fas fa-download"></i> ${fileName}</a>`;
+                    }
+
+                    const statusColors = {
+                        'completed': 'bg-green-900 text-green-200',
+                        'running': 'bg-blue-900 text-blue-200',
+                        'pending': 'bg-yellow-900 text-yellow-200',
+                        'failed': 'bg-red-900 text-red-200'
+                    };
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4 text-sm text-gray-300">${analysis.file_name || '📝 텍스트'}</td>
+                        <td class="px-6 py-4 text-sm text-gray-400">${formatFileSize(analysis.file_size)}</td>
+                        <td class="px-6 py-4 text-sm">
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColors[analysis.status] || 'bg-gray-700 text-gray-300'}">
+                                ${analysis.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-400">${analysis.duration_seconds ? analysis.duration_seconds + '초' : '-'}</td>
+                        <td class="px-6 py-4 text-sm">${downloadCell}</td>
+                        <td class="px-6 py-4 text-sm text-gray-400">${new Date(analysis.created_at).toLocaleString('ko-KR')}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                const prevBtn = document.getElementById('prevPageBtn');
+                const nextBtn = document.getElementById('nextPageBtn');
+                const pageInfo = document.getElementById('pageInfo');
+
+                prevBtn.disabled = page === 0;
+                nextBtn.disabled = offset + historyLimit >= historyTotal;
+                pageInfo.textContent = `${offset + 1}-${Math.min(offset + historyLimit, historyTotal)} / 총 ${historyTotal}건`;
+
+            } catch (error) {
+                console.error('이력 로드 실패:', error);
+            }
+        }
+
+        async function loadHistory() {
+            historyPage = 0;
+            await loadHistoryPage(0);
+        }
+
+        async function loadLogs() {
+            try {
+                const response = await fetch('/api/admin/logs?limit=50');
+                const data = await response.json();
+                const viewer = document.getElementById('log-viewer');
+                viewer.innerHTML = '';
+
+                data.logs.forEach(log => {
+                    const entry = document.createElement('div');
+                    entry.className = 'mb-2 text-gray-300';
+                    const levelColors = {
+                        'INFO': 'text-blue-400',
+                        'ERROR': 'text-red-400',
+                        'WARNING': 'text-yellow-400',
+                        'DEBUG': 'text-gray-500'
+                    };
+                    const color = levelColors[log.level] || 'text-gray-300';
+                    entry.innerHTML = `<span class="${color}[${log.level}]</span> ${log.timestamp} - ${log.message}`;
+                    viewer.appendChild(entry);
+                });
+            } catch (error) {
+                console.error('로그 로드 실패:', error);
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/admin/settings');
+                const data = await response.json();
+                const container = document.getElementById('settings-content');
+                container.innerHTML = '';
+
+                const settingsHtml = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                            <h3 class="text-white font-bold mb-4">📡 LLM 설정</h3>
+                            <table class="w-full text-sm">
+                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">모델</td><td class="py-2 text-gray-200">${data.llm.model}</td></tr>
+                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">모드</td><td class="py-2 text-gray-200">${data.llm.mock_mode ? '모의' : '실제'}</td></tr>
+                            </table>
+                        </div>
+                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                            <h3 class="text-white font-bold mb-4">📊 분석 설정</h3>
+                            <table class="w-full text-sm">
+                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">최대 파일 크기</td><td class="py-2 text-gray-200">${data.analysis.max_file_size_mb}MB</td></tr>
+                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">최대 토큰</td><td class="py-2 text-gray-200">${data.analysis.max_document_tokens}</td></tr>
+                                <tr><td class="py-2 text-gray-400">동시 실행 수</td><td class="py-2 text-gray-200">${data.analysis.max_concurrent_analyses}</td></tr>
+                            </table>
+                        </div>
+                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                            <h3 class="text-white font-bold mb-4">💾 저장소 설정</h3>
+                            <table class="w-full text-sm">
+                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">보관 기간</td><td class="py-2 text-gray-200">${data.storage.retention_days}일</td></tr>
+                                <tr><td class="py-2 text-gray-400">저장소</td><td class="py-2 text-gray-200">${data.storage.output_dir}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = settingsHtml;
+            } catch (error) {
+                console.error('설정 로드 실패:', error);
+            }
+        }
+
+        async function loadHealth() {
+            try {
+                const response = await fetch('/api/health/detailed');
+                const data = await response.json();
+                const container = document.getElementById('health-content');
+
+                const statusClass = data.status === 'healthy' ? 'text-green-400' : 'text-red-400';
+                const statusIcon = data.status === 'healthy' ? '✅' : '❌';
+
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                            <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+                                <span class="${statusClass}">${statusIcon}</span> 시스템 상태
+                            </h3>
+                            <table class="w-full text-sm">
+                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">데이터베이스</td><td class="py-2"><span class="text-green-400">✓ Healthy</span></td></tr>
+                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">LLM</td><td class="py-2"><span class="text-green-400">✓ ${data.services.llm.status}</span></td></tr>
+                                <tr><td class="py-2 text-gray-400">저장소</td><td class="py-2"><span class="text-green-400">✓ Healthy</span></td></tr>
+                            </table>
+                        </div>
+                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                            <h3 class="text-white font-bold mb-4">💾 리소스 사용량</h3>
+                            <table class="w-full text-sm">
+                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">메모리</td><td class="py-2 text-gray-200">${data.system.memory.rss_mb}MB</td></tr>
+                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">디스크 사용</td><td class="py-2 text-gray-200">${data.system.disk.used_gb.toFixed(2)}GB / ${data.system.disk.total_gb.toFixed(2)}GB</td></tr>
+                                <tr><td class="py-2 text-gray-400">사용률</td><td class="py-2 text-gray-200">${data.system.disk.percent.toFixed(1)}%</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('헬스 체크 로드 실패:', error);
+            }
+        }
+
+        // Auto-refresh every 5 seconds
+        setInterval(() => {
+            if (document.getElementById('section-dashboard') && !document.getElementById('section-dashboard').classList.contains('hidden')) {
+                loadDashboard();
+            }
+        }, 5000);
+
+        // Initial load
+        loadDashboard();
+    </script>
+</body>
+</html>
