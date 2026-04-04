@@ -170,6 +170,93 @@ class ClaudeClient:
                     "관리자 설정 화면 및 권한 반영 누락 가능성",
                 ],
             }
+        if "impact" in lower:
+            return {
+                "impact_summary": {
+                    "total_files": 8,
+                    "new_files": 3,
+                    "modified_files": 5,
+                    "impact_level": "MEDIUM",
+                },
+                "db_changes": [
+                    {
+                        "table": "BOARD_ATTACH",
+                        "change_type": "NEW",
+                        "columns": ["ATTACH_ID", "BOARD_ID", "FILE_NAME", "FILE_SIZE", "FILE_EXT", "FILE_PATH", "REG_DT"],
+                        "reason": "첨부파일 메타데이터 저장",
+                    },
+                    {
+                        "table": "SYSTEM_SETTING",
+                        "change_type": "ADD_COLUMN",
+                        "columns": ["ATTACH_MAX_SIZE_MB", "ATTACH_ALLOWED_EXT"],
+                        "reason": "관리자 첨부파일 설정",
+                    },
+                ],
+                "file_impacts": {
+                    "controller": [
+                        {"file": "BoardController.java", "change_type": "MODIFY", "methods": ["writeBoard", "modifyBoard", "deleteBoard", "downloadAttach"], "reason": "첨부파일 업로드/다운로드 처리"},
+                    ],
+                    "service": [
+                        {"file": "AttachService.java", "change_type": "NEW", "methods": ["uploadAttach", "deleteAttach", "getAttachList", "validateFile"], "reason": "첨부파일 비즈니스 로직"},
+                    ],
+                    "dao": [
+                        {"file": "AttachDao.java", "change_type": "NEW", "methods": ["insertAttach", "deleteAttach", "selectAttachList", "selectAttachById"], "reason": "첨부파일 DB 접근"},
+                    ],
+                    "mapper": [
+                        {"file": "AttachMapper.xml", "change_type": "NEW", "queries": ["insertAttach", "deleteAttachById", "selectAttachListByBoardId"], "reason": "첨부파일 CRUD 쿼리"},
+                    ],
+                    "jsp": [
+                        {"file": "boardWrite.jsp", "change_type": "MODIFY", "reason": "다중 파일 첨부 UI 추가"},
+                        {"file": "boardDetail.jsp", "change_type": "MODIFY", "reason": "첨부파일 목록 및 다운로드 링크 표시"},
+                        {"file": "adminSetting.jsp", "change_type": "MODIFY", "reason": "첨부파일 설정 항목 추가"},
+                    ],
+                    "javascript": [
+                        {"file": "boardWrite.js", "change_type": "MODIFY", "reason": "jQuery 다중 파일 첨부/삭제 처리"},
+                    ],
+                },
+                "dependency_chain": (
+                    "BOARD_ATTACH 테이블 신규 → AttachMapper.xml 쿼리 추가 → "
+                    "AttachDao.java 신규 → AttachService.java 신규 → "
+                    "BoardController.java 수정 → boardWrite.jsp / boardDetail.jsp 화면 수정"
+                ),
+            }
+        if "quality" in lower or "strict quality" in lower:
+            return {
+                "total_score": 88,
+                "pass": False,
+                "agent_scores": {
+                    "planner": {"score": 92, "feedback": "요구사항 추출은 충분하나 비기능 요구사항에 응답 시간 기준이 누락되었습니다."},
+                    "developer": {"score": 80, "feedback": "DB 스키마에 인덱스 전략이 없고 파일 저장 경로 관리 방식이 명시되지 않았습니다."},
+                    "impact_analyzer": {"score": 91, "feedback": "파일 영향도는 잘 분석되었으나 공통 유틸리티(FileUtil.java) 영향이 누락되었습니다."},
+                    "reviewer": {"score": 89, "feedback": "보안 리스크는 잘 도출되었으나 업로드 실패 시 트랜잭션 롤백 시나리오가 빠졌습니다."},
+                },
+                "retry_agents": ["developer"],
+                "overall_feedback": "전체적으로 양호하나 developer 에이전트의 DB 인덱스 전략과 파일 경로 관리 방식이 구체적이지 않습니다.",
+            }
+        if "chat" in lower or "requirements refinement" in lower:
+            # 질문 내용에 따라 다른 응답 제공
+            if "s3" in lower or "저장소" in lower or "바꾸면" in lower:
+                return {
+                    "type": "reanalysis",
+                    "requires_reanalysis": True,
+                    "answer": "S3 저장소로 변경할 경우, 다음 부분이 영향받습니다:\n\n1. **AttachService.java**: S3 SDK(AWS SDK for Java) 의존성 추가, S3 업로드/다운로드 로직 변경\n2. **BoardController.java**: 로컬 경로 대신 S3 URL 반환\n3. **system_setting**: 로컬 경로 설정 대신 S3 버킷명, IAM 권한 설정 추가\n4. **보안**: IAM 권한 기반 접근 제어로 파일 접근 보안 강화\n5. **배포 일정**: S3 설정 및 테스트로 인해 1일 추가\n\n영향도: MEDIUM → HIGH로 상향 조정",
+                    "follow_up_suggestions": [
+                        "S3 대신 Azure Blob Storage로 하면?",
+                        "기존 로컬 첨부는 어떻게 마이그레이션?",
+                        "비용 예상은?"
+                    ]
+                }
+            else:
+                return {
+                    "type": "answer",
+                    "requires_reanalysis": False,
+                    "answer": "현재 분석에 따르면, 첨부파일 기능은 BoardController, AttachService, AttachDao, AttachMapper.xml 등 5개 주요 파일에 영향을 미칩니다. 보안 위험은 파일명 기반 경로조작 방지와 콘텐츠 타입 스푸핑 대응이 주요 항목입니다. 일정은 중간 난이도(M)로 약 4일 소요될 것으로 예상됩니다.",
+                    "follow_up_suggestions": [
+                        "보안 위험 상세 설명",
+                        "다른 게시판도 함께 적용?",
+                        "테스트 전략은?"
+                    ]
+                }
         return {"message": "mock response"}
 
     @staticmethod
@@ -206,10 +293,24 @@ class ClaudeClient:
             "|---|---|---|---|\n"
             "| board_attachment | 신규 | id, post_id, file_name, file_size, ext, path | 첨부 메타 저장 |\n"
             "| system_setting | 수정 | attach_max_size_mb | 관리자 설정 |\n\n"
-            "## 5. 영향 범위\n"
-            "- 영향 모듈: BoardController, AttachmentService, Mapper\n"
-            "- 영향 화면: 게시글 작성/수정/상세, 관리자 설정\n"
-            "- 운영/배포 고려사항: 업로드 경로 권한 및 로그 모니터링\n\n"
+            "## 5. 영향 범위 (레이어별 상세)\n"
+            "### 5.1 DB 변경사항\n"
+            "| 테이블 | 변경 유형 | 컬럼 | 이유 |\n"
+            "|---|---|---|---|\n"
+            "| BOARD_ATTACH | 신규 | ATTACH_ID, BOARD_ID, FILE_NAME, FILE_SIZE, FILE_EXT, FILE_PATH, REG_DT | 첨부파일 메타데이터 |\n"
+            "| SYSTEM_SETTING | 컬럼추가 | ATTACH_MAX_SIZE_MB, ATTACH_ALLOWED_EXT | 관리자 설정 |\n\n"
+            "### 5.2 소스 파일 영향도\n"
+            "| 레이어 | 파일명 | 변경 유형 | 변경 메서드/쿼리 | 이유 |\n"
+            "|---|---|---|---|---|\n"
+            "| Controller | BoardController.java | 수정 | writeBoard, modifyBoard, downloadAttach | 첨부 처리 |\n"
+            "| Service | AttachService.java | 신규 | uploadAttach, deleteAttach, validateFile | 첨부 비즈니스 로직 |\n"
+            "| DAO | AttachDao.java | 신규 | insertAttach, deleteAttach, selectAttachList | 첨부 DB 접근 |\n"
+            "| Mapper | AttachMapper.xml | 신규 | insertAttach, deleteAttachById, selectAttachListByBoardId | 첨부 CRUD 쿼리 |\n"
+            "| JSP | boardWrite.jsp | 수정 | - | 다중 파일 첨부 UI |\n"
+            "| JSP | boardDetail.jsp | 수정 | - | 첨부파일 목록 표시 |\n"
+            "| JS | boardWrite.js | 수정 | - | jQuery 첨부 처리 |\n\n"
+            "### 5.3 변경 연쇄 순서\n"
+            "- BOARD_ATTACH 신규 → AttachMapper.xml → AttachDao.java → AttachService.java → BoardController.java → boardWrite.jsp / boardDetail.jsp\n\n"
             "## 6. 검토 결과 (리스크/예외/보안/성능)\n"
             "| 구분 | 내용 | 대응 방안 | 우선순위 |\n"
             "|---|---|---|---|\n"
@@ -224,5 +325,13 @@ class ClaudeClient:
             "- [ ] DB 변경안 리뷰\n"
             "- [ ] 보안 점검 항목 반영\n"
             "- [ ] 테스트 케이스 작성\n"
-            "- [ ] 배포/롤백 계획 확정\n"
+            "- [ ] 배포/롤백 계획 확정\n\n"
+            "## 9. 품질 검사 결과\n"
+            "| 에이전트 | 점수 | 피드백 |\n"
+            "|---|---|---|\n"
+            "| 종합 | 88점 | 전체적으로 양호하나 developer 에이전트의 DB 인덱스 전략이 구체적이지 않습니다. |\n"
+            "| planner | 92점 | 비기능 요구사항에 응답 시간 기준 누락 |\n"
+            "| developer | 80점 | DB 인덱스 전략 및 파일 경로 관리 방식 미명시 |\n"
+            "| impact_analyzer | 91점 | 공통 유틸리티(FileUtil.java) 영향 누락 |\n"
+            "| reviewer | 89점 | 트랜잭션 롤백 시나리오 누락 |\n"
         )

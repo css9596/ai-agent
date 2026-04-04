@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js (Markdown 렌더링) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * { @apply scroll-smooth; }
 
@@ -287,6 +289,56 @@
                     <!-- Content -->
                     <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
                         <div class="prose prose-sm sm:prose lg:prose-lg max-w-none p-8 sm:p-12" id="resultContent"></div>
+                    </div>
+
+                    <!-- Chat Refinement Panel -->
+                    <div class="mt-8 bg-white rounded-2xl shadow-xl overflow-hidden">
+                        <div class="border-t border-gray-200 p-6">
+                            <!-- Chat Header -->
+                            <div class="flex items-center gap-2 mb-4">
+                                <i class="fas fa-comments text-blue-600 text-xl"></i>
+                                <h3 class="text-lg font-semibold text-gray-800">분석 결과 정제</h3>
+                                <span class="text-sm text-gray-500 ml-auto">분석 결과에 대해 질문하세요</span>
+                            </div>
+
+                            <!-- Chat Messages -->
+                            <div id="chatMessages" class="bg-gray-50 rounded-lg p-4 h-64 overflow-y-auto mb-4 space-y-3">
+                                <div class="text-center text-gray-400 py-8">
+                                    <i class="fas fa-comments-dollar text-4xl mb-2 block opacity-50"></i>
+                                    <p class="text-sm">대화를 시작하세요</p>
+                                </div>
+                            </div>
+
+                            <!-- Suggested Questions -->
+                            <div class="mb-4 flex flex-wrap gap-2">
+                                <button class="chat-suggestion px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200 transition-colors">
+                                    <i class="fas fa-lightbulb mr-1"></i> S3로 바꾸면?
+                                </button>
+                                <button class="chat-suggestion px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition-colors">
+                                    <i class="fas fa-shield-alt mr-1"></i> 보안 위험은?
+                                </button>
+                                <button class="chat-suggestion px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm hover:bg-orange-200 transition-colors">
+                                    <i class="fas fa-clock mr-1"></i> 일정 줄이려면?
+                                </button>
+                            </div>
+
+                            <!-- Chat Input -->
+                            <div class="flex gap-2">
+                                <input
+                                    type="text"
+                                    id="chatInput"
+                                    placeholder="분석 결과에 대해 질문하세요..."
+                                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <button
+                                    id="chatSendBtn"
+                                    class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-semibold transition-smooth disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                                    <i class="fas fa-paper-plane"></i>
+                                    <span class="hidden sm:inline">전송</span>
+                                </button>
+                            </div>
+                            <p id="chatStatus" class="text-xs text-gray-400 mt-2"></p>
+                        </div>
                     </div>
 
                     <!-- New Analysis Button -->
@@ -635,8 +687,18 @@
             return names[agent] || agent;
         }
 
-        function showResult() {
+        async function showResult() {
             showScreen('result');
+            const resultContent = document.getElementById('resultContent');
+            resultContent.innerHTML = '<div class="flex items-center justify-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>결과 로딩 중...</div>';
+            try {
+                const res = await fetch(`/api/download/${outputFileName}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const markdown = await res.text();
+                resultContent.innerHTML = marked.parse(markdown);
+            } catch (e) {
+                resultContent.innerHTML = `<div class="text-red-500 p-4">결과 로딩 실패: ${e.message}</div>`;
+            }
         }
 
         // ========== 다운로드 ==========
@@ -668,6 +730,117 @@
                 await fetch(`/api/job/${currentJobId}/cancel`, { method: 'POST' });
                 showScreen('upload');
             }
+        });
+
+        // ========== 채팅형 요구사항 정제 ==========
+        let chatHistory = [];
+        let isChatLoading = false;
+
+        function renderChatMessage(role, content) {
+            const messagesDiv = document.getElementById('chatMessages');
+            if (messagesDiv.innerHTML.includes('대화를 시작하세요')) {
+                messagesDiv.innerHTML = '';
+            }
+
+            const isUser = role === 'user';
+            const bubble = document.createElement('div');
+            bubble.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+            bubble.innerHTML = `
+                <div class="${isUser ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'} rounded-lg px-4 py-2 max-w-xs break-words">
+                    ${content}
+                </div>
+            `;
+            messagesDiv.appendChild(bubble);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function sendChatMessage(message) {
+            if (!message.trim() || !currentJobId || isChatLoading) return;
+
+            isChatLoading = true;
+            document.getElementById('chatSendBtn').disabled = true;
+            document.getElementById('chatStatus').textContent = '답변 생성 중...';
+
+            try {
+                // 사용자 메시지 렌더링
+                renderChatMessage('user', message);
+                chatHistory.push({ role: 'user', content: message });
+                document.getElementById('chatInput').value = '';
+
+                // 서버로 요청
+                const res = await fetch(`/api/chat/${currentJobId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, history: chatHistory })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    renderChatMessage('assistant', `❌ 오류: ${err.detail?.message || '요청 실패'}`);
+                    return;
+                }
+
+                const result = await res.json();
+                const answer = result.answer || '답변을 생성할 수 없습니다.';
+
+                // AI 답변 렌더링
+                renderChatMessage('assistant', answer);
+                chatHistory.push({ role: 'assistant', content: answer });
+
+                // 재분석 표시
+                if (result.requires_reanalysis) {
+                    document.getElementById('chatStatus').textContent = '⚠️ 영향도를 재분석했습니다.';
+                } else {
+                    document.getElementById('chatStatus').textContent = '';
+                }
+
+                // 추천 질문 업데이트
+                updateSuggestedQuestions(result.follow_up_suggestions);
+            } catch (e) {
+                renderChatMessage('assistant', `❌ 네트워크 오류: ${e.message}`);
+            } finally {
+                isChatLoading = false;
+                document.getElementById('chatSendBtn').disabled = false;
+            }
+        }
+
+        function updateSuggestedQuestions(suggestions) {
+            const container = document.querySelector('.flex.flex-wrap.gap-2');
+            container.innerHTML = suggestions.map((q, i) => `
+                <button class="chat-suggestion px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 rounded-full text-sm hover:from-blue-200 hover:to-purple-200 transition-colors">
+                    <i class="fas fa-lightbulb mr-1"></i> ${q}
+                </button>
+            `).join('');
+
+            // 이벤트 리스너 재바인드
+            document.querySelectorAll('.chat-suggestion').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const text = btn.textContent.replace('⚡', '').replace('💡', '').replace('🛡️', '').replace('🕐', '').trim();
+                    sendChatMessage(text);
+                });
+            });
+        }
+
+        // 채팅 버튼 이벤트
+        document.getElementById('chatSendBtn').addEventListener('click', () => {
+            const message = document.getElementById('chatInput').value;
+            sendChatMessage(message);
+        });
+
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const message = document.getElementById('chatInput').value;
+                sendChatMessage(message);
+            }
+        });
+
+        // 추천 질문 클릭 이벤트
+        document.querySelectorAll('.chat-suggestion').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const text = btn.textContent.replace('💡', '').replace('🛡️', '').replace('🕐', '').trim();
+                sendChatMessage(text);
+            });
         });
     </script>
 </body>

@@ -49,6 +49,9 @@ client = ClaudeClient(
 # SSE 이벤트 큐 관리
 event_queues: Dict[str, asyncio.Queue] = {}
 
+# job_id별 분석 컨텍스트 저장 (채팅 정제용)
+job_contexts: Dict[str, Dict] = {}
+
 # Static 파일 서빙
 static_path = Path(__file__).parent / "static"
 if static_path.exists():
@@ -314,8 +317,9 @@ async def run_analysis(job_id: str, analysis_id: str, document: str):
             on_event=create_event_callback(job_id, loop)
         )
 
-        # 분석 실행
-        await asyncio.to_thread(orchestrator.run, document)
+        # 분석 실행 후 context 저장
+        context = await asyncio.to_thread(orchestrator.run, document)
+        job_contexts[job_id] = context  # 채팅 정제용 컨텍스트 저장
 
         # 출력 파일 찾기
         output_dir = Path(settings.OUTPUT_DIR)
@@ -448,19 +452,37 @@ async def download_pdf(filename: str):
         pdf_filename = f"{base_name}.pdf"
         pdf_path = md_file_path.parent / pdf_filename
 
-        # PDF로 변환
-        success = export_to_pdf(markdown_content, str(pdf_path))
-
-        if not success:
-            raise Exception("PDF 변환에 실패했습니다")
-
-        logger.info("PDF 내보내기", filename=pdf_filename)
-
-        return FileResponse(
-            pdf_path,
-            filename=pdf_filename,
-            media_type="application/pdf"
-        )
+        # WeasyPrint 사용 가능하면 PDF 생성, 없으면 프린트용 HTML 반환
+        from utils.export_formats import HAS_WEASYPRINT
+        if HAS_WEASYPRINT:
+            success = export_to_pdf(markdown_content, str(pdf_path))
+            if not success:
+                raise Exception("PDF 변환에 실패했습니다")
+            logger.info("PDF 내보내기", filename=pdf_filename)
+            return FileResponse(pdf_path, filename=pdf_filename, media_type="application/pdf")
+        else:
+            # 브라우저 프린트로 PDF 저장 안내
+            html_content = export_to_html(markdown_content)
+            print_html = html_content.replace(
+                "</head>",
+                """<style>
+                    @media print { .no-print { display: none !important; } }
+                    body { margin: 0; }
+                </style>
+                <script>
+                    window.addEventListener('load', function() {
+                        var banner = document.createElement('div');
+                        banner.className = 'no-print';
+                        banner.style.cssText = 'background:#2563eb;color:white;padding:12px 20px;font-family:sans-serif;font-size:14px;display:flex;align-items:center;justify-content:space-between;';
+                        banner.innerHTML = '<span>📄 브라우저 인쇄 기능으로 PDF를 저장하세요 (Ctrl+P / Cmd+P → PDF로 저장)</span><button onclick="window.print()" style="background:white;color:#2563eb;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:bold;">🖨 인쇄 / PDF 저장</button>';
+                        document.body.insertBefore(banner, document.body.firstChild);
+                    });
+                </script>
+                </head>"""
+            )
+            logger.info("PDF 폴백: 프린트용 HTML 반환", filename=base_name)
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(content=print_html)
 
     except Exception as e:
         logger.error("PDF 내보내기 실패", error=str(e))
@@ -596,6 +618,47 @@ async def cancel_job(job_id: str):
         raise HTTPException(status_code=400, detail={
             "error_code": "CANNOT_CANCEL",
             "message": "이미 실행 중인 작업은 취소할 수 없습니다"
+        })
+
+
+# ============================================================================
+# 채팅형 요구사항 정제 API
+# ============================================================================
+
+@app.post("/api/chat/{job_id}")
+async def chat_refinement(job_id: str, message: str, history: Optional[list] = None):
+    """
+    분석 결과에 대한 후속 질문 처리.
+    기존 분석 컨텍스트를 기반으로 답변 또는 재분석을 제공합니다.
+    """
+    if job_id not in job_contexts:
+        raise HTTPException(status_code=404, detail={
+            "error_code": "CONTEXT_NOT_FOUND",
+            "message": "분석 결과를 찾을 수 없습니다. 분석을 먼저 완료하세요."
+        })
+
+    try:
+        from agents.chat_agent import ChatAgent
+        chat_agent = ChatAgent(client)
+        context = job_contexts[job_id]
+        chat_history = history or []
+
+        # ChatAgent 실행
+        result = chat_agent.run(context, message, chat_history)
+
+        logger.info("채팅 정제", job_id=job_id, message=message[:100])
+        return {
+            "type": result.get("type", "answer"),
+            "answer": result.get("answer", ""),
+            "requires_reanalysis": result.get("requires_reanalysis", False),
+            "follow_up_suggestions": result.get("follow_up_suggestions", [])
+        }
+
+    except Exception as e:
+        logger.error("채팅 정제 실패", job_id=job_id, error=str(e))
+        raise HTTPException(status_code=500, detail={
+            "error_code": "CHAT_FAILED",
+            "message": f"채팅 처리 실패: {str(e)}"
         })
 
 

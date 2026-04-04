@@ -10,12 +10,16 @@ class ReviewerAgent:
     def __init__(self, client: ClaudeClient) -> None:
         self.client = client
 
-    def run(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def run(self, context: Dict[str, Any], feedback: str = "") -> Dict[str, Any]:
         print("[Reviewer] 분석 중...")
         planner_data = context.get("planner", {})
         developer_data = context.get("developer", {})
+        impact_data = context.get("impact_analyzer", {})
+        feedback_section = (
+            f"\n\n[이전 분석 피드백 - 반드시 반영하세요]\n{feedback}" if feedback else ""
+        )
         prompt = (
-            "기획안과 개발 스펙을 교차 검토해서 누락 예외처리/보안/성능/일정 리스크를 도출하세요.\n"
+            "기획안, 개발 스펙, 영향도 분석을 교차 검토해서 누락 예외처리/보안/성능/일정 리스크를 도출하세요.\n"
             "반드시 JSON으로만 답변하세요.\n"
             "스키마:\n"
             "{"
@@ -23,7 +27,9 @@ class ReviewerAgent:
             '"performance_risks": [], "schedule_risks": []'
             "}\n\n"
             f"[기획]\n{json.dumps(planner_data, ensure_ascii=False)}\n\n"
-            f"[개발]\n{json.dumps(developer_data, ensure_ascii=False)}"
+            f"[개발]\n{json.dumps(developer_data, ensure_ascii=False)}\n\n"
+            f"[영향도]\n{json.dumps(impact_data, ensure_ascii=False)}"
+            f"{feedback_section}"
         )
         result = self.client.request_json(system_prompt="You are a strict software reviewer agent.", user_prompt=prompt)
         context["reviewer"] = result

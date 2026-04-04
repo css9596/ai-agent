@@ -10,17 +10,22 @@ class DeveloperAgent:
     def __init__(self, client: ClaudeClient) -> None:
         self.client = client
 
-    def run(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def run(self, context: Dict[str, Any], feedback: str = "") -> Dict[str, Any]:
         print("[Developer] 분석 중...")
         planner_data = context.get("planner", {})
+        feedback_section = (
+            f"\n\n[이전 분석 피드백 - 반드시 반영하세요]\n{feedback}" if feedback else ""
+        )
         prompt = (
             "기획 결과를 바탕으로 Java/JSP/jQuery/MyBatis 기준의 기술 스펙을 작성하세요.\n"
+            "DB 설계 시 인덱스 전략과 파일 저장 경로 관리 방식도 포함하세요.\n"
             "반드시 JSON으로만 답변하세요.\n"
             "스키마:\n"
             "{"
             '"technical_spec": [], "db_changes": [], "impacted_modules": [], "effort": "S|M|L|XL"'
             "}\n\n"
             f"[기획 결과]\n{json.dumps(planner_data, ensure_ascii=False)}"
+            f"{feedback_section}"
         )
         result = self.client.request_json(system_prompt="You are a senior software developer agent.", user_prompt=prompt)
         context["developer"] = result

@@ -10,9 +10,12 @@ class PlannerAgent:
     def __init__(self, client: ClaudeClient) -> None:
         self.client = client
 
-    def run(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def run(self, context: Dict[str, Any], feedback: str = "") -> Dict[str, Any]:
         print("[Planner] 분석 중...")
         document = context["input_document"]
+        feedback_section = (
+            f"\n\n[이전 분석 피드백 - 반드시 반영하세요]\n{feedback}" if feedback else ""
+        )
         prompt = (
             "다음 요청 문서에서 핵심 요구사항/기능 목록/비기능 요구사항/모호점/명확화 질문을 추출하세요.\n"
             "반드시 JSON으로만 답변하세요.\n"
@@ -22,6 +25,7 @@ class PlannerAgent:
             '"ambiguities": [], "clarification_questions": []'
             "}\n\n"
             f"[요청 문서]\n{document}"
+            f"{feedback_section}"
         )
         result = self.client.request_json(system_prompt="You are a senior planner agent.", user_prompt=prompt)
         context["planner"] = result

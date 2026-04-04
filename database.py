@@ -35,9 +35,19 @@ class Database:
                     started_at TIMESTAMP,
                     completed_at TIMESTAMP,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    duration_seconds INTEGER
+                    duration_seconds INTEGER,
+                    chat_history TEXT
                 )
             """)
+
+            # 채팅 히스토리 컬럼 마이그레이션 (기존 테이블에 컬럼이 없으면 추가)
+            try:
+                cursor.execute("PRAGMA table_info(analyses)")
+                columns = [col[1] for col in cursor.fetchall()]
+                if "chat_history" not in columns:
+                    cursor.execute("ALTER TABLE analyses ADD COLUMN chat_history TEXT")
+            except sqlite3.OperationalError:
+                pass
 
             # 인덱스
             cursor.execute("""
@@ -237,6 +247,35 @@ class Database:
                 "success_rate": round((completed / total * 100) if total > 0 else 0, 2),
                 "avg_duration_seconds": round(avg_duration, 2)
             }
+
+    def save_chat_history(self, analysis_id: str, chat_history: List[Dict[str, str]]) -> None:
+        """채팅 히스토리 저장 (JSON 직렬화)"""
+        import json
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            history_json = json.dumps(chat_history, ensure_ascii=False)
+            cursor.execute("""
+                UPDATE analyses
+                SET chat_history = ?
+                WHERE id = ?
+            """, (history_json, analysis_id))
+            conn.commit()
+
+    def get_chat_history(self, analysis_id: str) -> List[Dict[str, str]]:
+        """채팅 히스토리 조회 (JSON 역직렬화)"""
+        import json
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT chat_history FROM analyses WHERE id = ?
+            """, (analysis_id,))
+            result = cursor.fetchone()
+            if result and result[0]:
+                try:
+                    return json.loads(result[0])
+                except json.JSONDecodeError:
+                    return []
+            return []
 
 
 # 전역 DB 인스턴스
