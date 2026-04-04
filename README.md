@@ -471,7 +471,7 @@ MIT License - 자유롭게 사용, 수정, 배포 가능합니다.
 
 ## 📞 지원
 
-- 📧 Email: support@example.com
+- 📧 Email: css9596@naver.com
 - 💬 Issues: GitHub Issues
 - 📚 Docs: https://example.com/docs
 

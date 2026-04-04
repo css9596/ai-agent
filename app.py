@@ -52,6 +52,9 @@ event_queues: Dict[str, asyncio.Queue] = {}
 # job_id별 분석 컨텍스트 저장 (채팅 정제용)
 job_contexts: Dict[str, Dict] = {}
 
+# job_id → analysis_id 매핑 (DB 저장용)
+job_to_analysis: Dict[str, str] = {}
+
 # Static 파일 서빙
 static_path = Path(__file__).parent / "static"
 if static_path.exists():
@@ -320,6 +323,7 @@ async def run_analysis(job_id: str, analysis_id: str, document: str):
         # 분석 실행 후 context 저장
         context = await asyncio.to_thread(orchestrator.run, document)
         job_contexts[job_id] = context  # 채팅 정제용 컨텍스트 저장
+        job_to_analysis[job_id] = analysis_id  # DB 저장용 매핑
 
         # 출력 파일 찾기
         output_dir = Path(settings.OUTPUT_DIR)
@@ -646,11 +650,23 @@ async def chat_refinement(job_id: str, message: str, history: Optional[list] = N
         # ChatAgent 실행
         result = chat_agent.run(context, message, chat_history)
 
+        # 대화 히스토리 누적
+        updated_history = chat_history + [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": result.get("answer", "")}
+        ]
+
+        # DB에 저장 (analysis_id가 있는 경우)
+        if job_id in job_to_analysis:
+            analysis_id = job_to_analysis[job_id]
+            db.save_chat_history(analysis_id, updated_history)
+
         logger.info("채팅 정제", job_id=job_id, message=message[:100])
         return {
             "type": result.get("type", "answer"),
             "answer": result.get("answer", ""),
             "requires_reanalysis": result.get("requires_reanalysis", False),
+            "reanalyzed_impact": result.get("reanalyzed_impact"),  # 재분석된 영향도
             "follow_up_suggestions": result.get("follow_up_suggestions", [])
         }
 

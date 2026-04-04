@@ -787,8 +787,13 @@
                 renderChatMessage('assistant', answer);
                 chatHistory.push({ role: 'assistant', content: answer });
 
-                // 재분석 표시
-                if (result.requires_reanalysis) {
+                // 재분석 결과 표시
+                if (result.requires_reanalysis && result.reanalyzed_impact) {
+                    const impact = result.reanalyzed_impact;
+                    const impactSummary = `📊 재분석 완료: ${impact.impact_summary?.total_files || '?'}개 파일 영향 (${impact.impact_summary?.impact_level || '?'})`;
+                    document.getElementById('chatStatus').textContent = impactSummary;
+                    renderChatMessage('assistant', `💡 ${impactSummary}`);
+                } else if (result.requires_reanalysis) {
                     document.getElementById('chatStatus').textContent = '⚠️ 영향도를 재분석했습니다.';
                 } else {
                     document.getElementById('chatStatus').textContent = '';

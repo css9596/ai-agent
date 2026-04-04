@@ -13,6 +13,7 @@ class ChatAgent:
     def run(self, context: Dict[str, Any], message: str, chat_history: List[Dict[str, str]]) -> Dict[str, Any]:
         """
         사용자 질문을 분석하고 답변을 생성합니다.
+        변경 요청인 경우 ImpactAnalyzer를 재실행하여 영향도를 재분석합니다.
 
         Args:
             context: 기존 분석 결과 (planner, developer, impact_analyzer, reviewer)
@@ -23,7 +24,8 @@ class ChatAgent:
             {
                 "type": "answer|reanalysis",
                 "answer": "텍스트 답변",
-                "needs_reanalysis": bool,
+                "requires_reanalysis": bool,
+                "reanalyzed_impact": {...},  # 재분석 결과 (있을 때만)
                 "follow_up_suggestions": ["질문1", "질문2", "질문3"]
             }
         """
@@ -65,6 +67,21 @@ class ChatAgent:
             system_prompt="You are a helpful requirements refinement assistant. Analyze user questions and provide answers based on the analysis context.",
             user_prompt=prompt,
         )
+
+        # 재분석이 필요한 경우 ImpactAnalyzer 재실행
+        if result.get("requires_reanalysis"):
+            print("[ChatAgent] ImpactAnalyzer 재실행 중...")
+            from agents.impact_analyzer import ImpactAnalyzerAgent
+
+            impact_agent = ImpactAnalyzerAgent(self.client)
+            feedback = f"사용자 변경 요청: {message}\n기존 영향도를 바탕으로 변경된 부분만 재분석하세요."
+
+            # 컨텍스트를 복사해서 재분석 실행 (원본 영향도는 유지)
+            reanalysis_context = context.copy()
+            reanalysis_context = impact_agent.run(reanalysis_context, feedback=feedback)
+
+            # 재분석된 영향도를 결과에 포함
+            result["reanalyzed_impact"] = reanalysis_context.get("impact_analyzer", {})
 
         return result
 

@@ -240,6 +240,25 @@ class ClaudeClient:
                     "type": "reanalysis",
                     "requires_reanalysis": True,
                     "answer": "S3 저장소로 변경할 경우, 다음 부분이 영향받습니다:\n\n1. **AttachService.java**: S3 SDK(AWS SDK for Java) 의존성 추가, S3 업로드/다운로드 로직 변경\n2. **BoardController.java**: 로컬 경로 대신 S3 URL 반환\n3. **system_setting**: 로컬 경로 설정 대신 S3 버킷명, IAM 권한 설정 추가\n4. **보안**: IAM 권한 기반 접근 제어로 파일 접근 보안 강화\n5. **배포 일정**: S3 설정 및 테스트로 인해 1일 추가\n\n영향도: MEDIUM → HIGH로 상향 조정",
+                    "reanalyzed_impact": {
+                        "impact_summary": {
+                            "total_files": 6,
+                            "new_files": 1,
+                            "modified_files": 5,
+                            "impact_level": "HIGH"
+                        },
+                        "file_impacts": {
+                            "service": [
+                                {"file": "AttachService.java", "change_type": "MODIFY", "methods": ["uploadAttach", "downloadAttach"], "reason": "S3 SDK 추가, 로직 변경"}
+                            ],
+                            "controller": [
+                                {"file": "BoardController.java", "change_type": "MODIFY", "methods": ["downloadAttach"], "reason": "S3 URL 반환"}
+                            ],
+                            "mapper": [
+                                {"file": "system_setting_mapper.xml", "change_type": "MODIFY", "queries": ["updateS3Settings"], "reason": "S3 설정 추가"}
+                            ]
+                        }
+                    },
                     "follow_up_suggestions": [
                         "S3 대신 Azure Blob Storage로 하면?",
                         "기존 로컬 첨부는 어떻게 마이그레이션?",
