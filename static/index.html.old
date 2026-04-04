@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>개발 분석서 자동 생성기</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Heroicons for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+            --bg-white: #ffffff;
+            --border: #e5e7eb;
+            --success: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--bg-white);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* 화면 1: 업로드 */
+        .upload-area {
+            border: 3px dashed var(--border);
+            border-radius: 12px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: var(--bg-light);
+        }
+
+        .upload-area.drag-over {
+            border-color: var(--primary);
+            background: var(--bg-light);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .upload-area p {
+            font-size: 18px;
+            color: var(--text);
+            margin: 8px 0;
+        }
+
+        .upload-area .small {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        /* 파일 미리보기 카드 */
+        .file-preview {
+            display: none;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            animation: slideUp 0.3s ease;
+        }
+
+        .file-preview.show {
+            display: block;
+        }
+
+        .file-preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .file-preview-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .file-preview-icon {
+            font-size: 32px;
+            min-width: 40px;
+        }
+
+        .file-preview-details h4 {
+            font-size: 16px;
+            color: var(--text);
+            margin: 0 0 4px 0;
+            word-break: break-all;
+        }
+
+        .file-preview-details p {
+            font-size: 13px;
+            color: var(--text-light);
+            margin: 0;
+        }
+
+        .file-preview-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .file-preview-actions button {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-text {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .btn-text:hover {
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateY(0);
+        }
+
+        .file-preview-error {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .file-preview-error.show {
+            display: block;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider span {
+            background: var(--bg-white);
+            padding: 0 12px;
+            color: var(--text-light);
+            position: relative;
+        }
+
+        .textarea-group {
+            margin-bottom: 20px;
+        }
+
+        .textarea-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .textarea-group textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            border-color: var(--border);
+            transition: border-color 0.3s;
+        }
+
+        .textarea-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--text-light);
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--text);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* 화면 2: 모니터링 */
+        .pipeline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            overflow-x: auto;
+            padding: 20px 0;
+        }
+
+        .pipeline-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .pipeline-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: calc(100% + 20px);
+            width: 40px;
+            height: 2px;
+            background: var(--border);
+            transition: background 0.3s;
+        }
+
+        .pipeline-step.done:not(:last-child)::after {
+            background: var(--success);
+        }
+
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+        }
+
+        .pipeline-step.pending .step-icon {
+            background: var(--border);
+            color: var(--text-light);
+        }
+
+        .pipeline-step.active .step-icon {
+            background: var(--primary);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .pipeline-step.done .step-icon {
+            background: var(--success);
+        }
+
+        .step-label {
+            font-size: 12px;
+            text-align: center;
+            color: var(--text);
+            font-weight: 500;
+            min-width: 60px;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+            }
+        }
+
+        .log-container {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .log-entry {
+            margin: 8px 0;
+            padding: 4px 0;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .monitor-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .results-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .result-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .result-card-icon {
+            font-size: 24px;
+        }
+
+        .result-section {
+            margin-bottom: 16px;
+        }
+
+        .result-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .result-section-items {
+            padding-left: 12px;
+            border-left: 2px solid var(--primary);
+        }
+
+        .result-item {
+            font-size: 13px;
+            color: var(--text);
+            margin: 6px 0;
+            padding: 4px 8px;
+            background: rgba(59, 130, 246, 0.05);
+            border-radius: 4px;
+        }
+
+        .result-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .result-content {
+            font-size: 13px;
+            color: var(--text);
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-entry.orchestrator {
+            color: #f472b6;
+        }
+
+        .log-entry.planner {
+            color: #60a5fa;
+        }
+
+        .log-entry.developer {
+            color: #34d399;
+        }
+
+        .log-entry.reviewer {
+            color: #fbbf24;
+        }
+
+        .log-entry.documenter {
+            color: #a78bfa;
+        }
+
+        .log-entry.status {
+            color: #cbd5e1;
+        }
+
+        .log-entry.done {
+            color: #10b981;
+        }
+
+        .log-entry.error {
+            color: #ef4444;
+        }
+
+        /* 화면 3: 결과 */
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .result-header h2 {
+            font-size: 24px;
+            color: var(--text);
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-download {
+            background: var(--secondary);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-download:hover:not(:disabled) {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .export-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .export-group .btn-primary {
+            flex: 1;
+            min-width: 100px;
+            font-size: 14px;
+            padding: 10px 12px;
+        }
+
+        @media (max-width: 768px) {
+            .export-group {
+                flex-direction: column;
+            }
+
+            .export-group .btn-primary {
+                width: 100%;
+            }
+        }
+
+        .markdown-content {
+            line-height: 1.8;
+            color: var(--text);
+        }
+
+        .markdown-content h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 24px 0 16px;
+            color: var(--text);
+        }
+
+        .markdown-content h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 20px 0 12px;
+            color: var(--text);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .markdown-content h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 16px 0 8px;
+            color: var(--text);
+        }
+
+        .markdown-content p {
+            margin: 12px 0;
+        }
+
+        .markdown-content ul, .markdown-content ol {
+            margin: 12px 0 12px 24px;
+        }
+
+        .markdown-content li {
+            margin: 6px 0;
+        }
+
+        .markdown-content code {
+            background: var(--bg-light);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #c7254e;
+        }
+
+        .markdown-content pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+
+        .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .markdown-content th {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .markdown-content td {
+            border: 1px solid var(--border);
+            padding: 12px;
+        }
+
+        .markdown-content tr:hover {
+            background: var(--bg-light);
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid var(--primary);
+            margin: 12px 0;
+            padding-left: 16px;
+            color: var(--text-light);
+        }
+
+        .status-message {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .status-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid var(--success);
+        }
+
+        .status-message.error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border-left: 4px solid var(--danger);
+        }
+
+        .status-message.warning {
+            background: #fef3c7;
+            color: #7c2d12;
+            border-left: 4px solid var(--warning);
+        }
+
+        .error-details {
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .error-details p {
+            margin: 4px 0;
+        }
+
+        .error-actions {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .error-actions strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .error-actions li {
+            margin: 2px 0;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .pipeline {
+                overflow-x: auto;
+                padding-bottom: 20px;
+            }
+
+            .log-container {
+                height: 250px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 개발 분석서 자동 생성기</h1>
+            <p>AI가 요구사항을 분석하여 개발 분석서를 자동으로 생성합니다</p>
+        </div>
+
+        <div class="content">
+            <!-- 화면 1: 업로드 -->
+            <div id="screen-upload" class="screen active">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <p><strong>파일을 드래그하거나 클릭하여 업로드</strong></p>
+                    <p class="small">지원 형식: .txt, .md, .pdf, .xlsx, .pptx, .docx</p>
+                </div>
+
+                <!-- 파일 미리보기 카드 -->
+                <div class="file-preview" id="filePreview">
+                    <div class="file-preview-header">
+                        <div class="file-preview-info">
+                            <div class="file-preview-icon" id="filePreviewIcon"></div>
+                            <div class="file-preview-details">
+                                <h4 id="filePreviewName"></h4>
+                                <p id="filePreviewSize"></p>
+                            </div>
+                        </div>
+                        <div class="file-preview-actions">
+                            <button class="btn-text" id="changeFileBtn">파일 변경</button>
+                            <button class="btn-text" id="clearFileBtn">취소</button>
+                        </div>
+                    </div>
+                    <div class="file-preview-error" id="filePreviewError"></div>
+                </div>
+
+                <div class="divider">
+                    <span>또는</span>
+                </div>
+
+                <div class="textarea-group">
+                    <label for="textInput">요구사항 텍스트 직접 입력</label>
+                    <textarea id="textInput" placeholder="요구사항 내용을 입력하세요. 예: 게시판에 파일 첨부 기능을 추가해야 합니다..."></textarea>
+                </div>
+
+                <div id="queueWarning" style="display: none; margin-top: 20px;">
+                    <div class="status-message warning">
+                        ⏳ 분석 대기 중입니다. <span id="queuePosition"></span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" id="analyzeBtn">분석 시작</button>
+                </div>
+
+                <input type="file" id="fileInput">
+            </div>
+
+            <!-- 화면 2: 모니터링 -->
+            <div id="screen-monitoring" class="screen">
+                <h2 style="margin-bottom: 30px;">분석 진행 중...</h2>
+
+                <div class="pipeline" id="pipeline">
+                    <div class="pipeline-step pending" data-agent="orchestrator">
+                        <div class="step-icon">⚙️</div>
+                        <div class="step-label">Orchestrator</div>
+                    </div>
+                    <div class="pipeline-step pending" data-agent="planner">
+                        <div class="step-icon">📋</div>
+                        <div class="step-label">기획자</div>
+                    </div>
+                    <div class="pipeline-step pending" data-agent="developer">
+                        <div class="step-icon">💻</div>
+                        <div class="step-label">개발자</div>
+                    </div>
+                    <div class="pipeline-step pending" data-agent="reviewer">
+                        <div class="step-icon">🔍</div>
+                        <div class="step-label">검토자</div>
+                    </div>
+                    <div class="pipeline-step pending" data-agent="documenter">
+                        <div class="step-icon">📝</div>
+                        <div class="step-label">문서화</div>
+                    </div>
+                </div>
+
+                <!-- 탭 네비게이션 -->
+                <div class="monitor-tabs">
+                    <button class="tab-btn active" data-tab="logs">📝 로그</button>
+                    <button class="tab-btn" data-tab="results">📊 중간 결과</button>
+                </div>
+
+                <!-- 로그 탭 -->
+                <div class="tab-content active" id="tab-logs">
+                    <div class="log-container" id="logContainer"></div>
+                </div>
+
+                <!-- 중간 결과 탭 -->
+                <div class="tab-content" id="tab-results">
+                    <div id="resultsContainer" class="results-container"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" id="cancelBtn">취소</button>
+                </div>
+            </div>
+
+            <!-- 화면 3: 결과 -->
+            <div id="screen-result" class="screen">
+                <div class="result-header">
+                    <h2>분석 완료</h2>
+                    <div class="result-actions">
+                        <div class="export-group">
+                            <button class="btn-primary btn-download" id="downloadMdBtn">
+                                ⬇️ Markdown
+                            </button>
+                            <button class="btn-primary btn-download" id="downloadHtmlBtn">
+                                🌐 HTML
+                            </button>
+                            <button class="btn-primary btn-download" id="downloadPdfBtn">
+                                📄 PDF
+                            </button>
+                            <button class="btn-primary btn-download" id="downloadDocxBtn">
+                                📋 Word
+                            </button>
+                            <button class="btn-primary btn-download" id="downloadJsonBtn">
+                                {} JSON
+                            </button>
+                        </div>
+                        <button class="btn-primary" id="newAnalysisBtn">새 분석</button>
+                    </div>
+                </div>
+
+                <div id="resultContent" class="markdown-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 상태 관리
+        let currentScreen = 'upload';
+        let currentJobId = null;
+        let eventSource = null;
+        let outputFileName = null;
+        let agentResults = {};  // 중간 결과 저장
+
+        // 화면 전환 함수
+        function showScreen(screenName) {
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            document.getElementById(`screen-${screenName}`).classList.add('active');
+            currentScreen = screenName;
+        }
+
+        // 지원 파일 형식
+        const SUPPORTED_FORMATS = ['.txt', '.md', '.pdf', '.xlsx', '.pptx', '.docx'];
+        const MAX_FILE_SIZE_MB = 10;  // 서버와 동일하게 설정
+
+        // 파일 형식 아이콘
+        const FILE_ICONS = {
+            '.txt': '📝',
+            '.md': '📄',
+            '.pdf': '📕',
+            '.xlsx': '📊',
+            '.pptx': '🎯',
+            '.docx': '📄'
+        };
+
+        // 파일 검증
+        function validateFile(file) {
+            if (!file) {
+                return { valid: false, error: '파일을 선택하세요' };
+            }
+
+            const fileName = file.name.toLowerCase();
+            const fileExt = '.' + fileName.split('.').pop();
+
+            if (!SUPPORTED_FORMATS.includes(fileExt)) {
+                return {
+                    valid: false,
+                    error: `지원하지 않는 형식입니다. 지원 형식: ${SUPPORTED_FORMATS.join(', ')}`
+                };
+            }
+
+            const fileSizeMB = file.size / 1024 / 1024;
+            if (fileSizeMB > MAX_FILE_SIZE_MB) {
+                return {
+                    valid: false,
+                    error: `파일 크기가 ${MAX_FILE_SIZE_MB}MB를 초과합니다. (현재: ${fileSizeMB.toFixed(2)}MB)`
+                };
+            }
+
+            return { valid: true };
+        }
+
+        // 파일 크기 포맷팅 (사람 읽기 쉬운 형식)
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // 파일 미리보기 표시
+        function showFilePreview(file) {
+            const preview = document.getElementById('filePreview');
+            const nameEl = document.getElementById('filePreviewName');
+            const sizeEl = document.getElementById('filePreviewSize');
+            const iconEl = document.getElementById('filePreviewIcon');
+            const errorEl = document.getElementById('filePreviewError');
+
+            // 파일명과 크기 표시
+            nameEl.textContent = file.name;
+            sizeEl.textContent = formatFileSize(file.size);
+
+            // 파일 형식 아이콘
+            const fileExt = '.' + file.name.toLowerCase().split('.').pop();
+            iconEl.textContent = FILE_ICONS[fileExt] || '📄';
+
+            // 검증
+            const validation = validateFile(file);
+            errorEl.classList.remove('show');
+            errorEl.textContent = '';
+
+            if (!validation.valid) {
+                errorEl.textContent = validation.error;
+                errorEl.classList.add('show');
+            }
+
+            preview.classList.add('show');
+            uploadArea.classList.add('drag-over');
+        }
+
+        // 파일 미리보기 숨김
+        function hideFilePreview() {
+            const preview = document.getElementById('filePreview');
+            const errorEl = document.getElementById('filePreviewError');
+            preview.classList.remove('show');
+            uploadArea.classList.remove('drag-over');
+            errorEl.classList.remove('show');
+            errorEl.textContent = '';
+            fileInput.value = '';
+        }
+
+        // 파일 업로드 처리
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // 파일 입력 변경
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                showFilePreview(e.target.files[0]);
+            }
+        });
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                showFilePreview(e.dataTransfer.files[0]);
+            }
+        });
+
+        // 파일 변경 버튼
+        document.getElementById('changeFileBtn').addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 파일 취소 버튼
+        document.getElementById('clearFileBtn').addEventListener('click', () => {
+            hideFilePreview();
+        });
+
+        // 분석 시작
+        document.getElementById('analyzeBtn').addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            const text = document.getElementById('textInput').value.trim();
+
+            if (!file && !text) {
+                showError('입력 없음', '파일 또는 텍스트를 제공해주세요', [
+                    '파일을 업로드하거나',
+                    '텍스트를 입력하세요'
+                ]);
+                return;
+            }
+
+            // 파일 선택 시 유효성 검사
+            if (file) {
+                const validation = validateFile(file);
+                if (!validation.valid) {
+                    showError('파일 검증 실패', validation.error, [
+                        '지원 형식을 확인하세요',
+                        '파일 크기를 줄여보세요'
+                    ]);
+                    return;
+                }
+            }
+
+            showScreen('monitoring');
+            await startAnalysis(file, text);
+        });
+
+        // 분석 요청
+        async function startAnalysis(file, text) {
+            try {
+                const formData = new FormData();
+                if (file) {
+                    formData.append('file', file);
+                } else {
+                    formData.append('text', text);
+                }
+
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    showError(error.detail.error_code, error.detail.message, error.detail.actions);
+                    return;
+                }
+
+                const data = await response.json();
+                currentJobId = data.job_id;
+
+                // 큐 상태 확인
+                if (data.status === 'pending') {
+                    addLog('status', `📋 분석이 대기 중입니다. (위치: ${data.queue.pending_jobs.length})`);
+                    document.getElementById('queuePosition').textContent = `위치: ${data.queue.pending_jobs.length}번째`;
+                    document.getElementById('queueWarning').style.display = 'block';
+                } else {
+                    document.getElementById('queueWarning').style.display = 'none';
+                }
+
+                addLog('status', `분석 요청 완료: ${data.job_id}`);
+
+                // SSE 연결
+                connectToStream(data.job_id);
+            } catch (error) {
+                showError('요청 실패', error.message, ['잠시 후 다시 시도하세요']);
+            }
+        }
+
+        // SSE 스트림 연결
+        function connectToStream(jobId) {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            eventSource = new EventSource(`/api/stream/${jobId}`);
+
+            eventSource.addEventListener('message', (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleEvent(data);
+                } catch (error) {
+                    console.error('Failed to parse event:', error);
+                }
+            });
+
+            eventSource.addEventListener('error', () => {
+                addLog('error', '서버 연결 끊김');
+                eventSource.close();
+            });
+        }
+
+        // 이벤트 처리
+        function handleEvent(event) {
+            const { type, agent, message, agents, result, summary, data, output_file, actions } = event;
+
+            switch (type) {
+                case 'status':
+                    addLog('status', `[${agent}] ${message}`);
+                    break;
+
+                case 'selection':
+                    addLog('orchestrator', `선택된 에이전트: ${agents.join(', ')}`);
+                    break;
+
+                case 'agent_start':
+                    addLog(agent, `[${getAgentName(agent)}] 분석 시작...`);
+                    updatePipeline(agent, 'active');
+                    break;
+
+                case 'agent_done':
+                    addLog('done', `[${getAgentName(agent)}] 완료`);
+                    updatePipeline(agent, 'done');
+                    break;
+
+                case 'agent_result':
+                    // 중간 결과 저장 및 UI 업데이트
+                    agentResults[agent] = { summary, data };
+                    displayAgentResult(agent, summary);
+                    break;
+
+                case 'complete':
+                    eventSource.close();
+                    outputFileName = output_file;
+                    addLog('done', '✅ 분석 완료!');
+                    showResult();
+                    break;
+
+                case 'error':
+                    eventSource.close();
+                    addLog('error', `❌ 오류: ${message}`);
+                    setTimeout(() => {
+                        showError('분석 실패', message, actions || ['다시 시도하세요']);
+                    }, 1000);
+                    break;
+            }
+        }
+
+        // 로그 추가
+        function addLog(category, message) {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${category}`;
+            entry.textContent = `${new Date().toLocaleTimeString('ko-KR')} ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 에러 표시
+        function showError(errorCode, message, actions) {
+            showScreen('upload');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'status-message error';
+            errorDiv.style.marginBottom = '20px';
+
+            let html = `<strong>❌ ${errorCode}</strong><p>${message}</p>`;
+
+            if (actions && actions.length > 0) {
+                html += '<div class="error-actions"><strong>시도해볼 수 있는 방법:</strong><ul>';
+                actions.forEach(action => {
+                    html += `<li>${action}</li>`;
+                });
+                html += '</ul></div>';
+            }
+
+            errorDiv.innerHTML = html;
+
+            const uploadScreen = document.getElementById('screen-upload');
+            uploadScreen.insertBefore(errorDiv, uploadScreen.firstChild);
+        }
+
+        // 파이프라인 업데이트
+        function updatePipeline(agent, status) {
+            const step = document.querySelector(`[data-agent="${agent}"]`);
+            if (step) {
+                step.classList.remove('pending', 'active', 'done');
+                step.classList.add(status);
+            }
+        }
+
+        // 에이전트 이름 변환
+        function getAgentName(agent) {
+            const names = {
+                'orchestrator': '오케스트레이터',
+                'planner': '기획자',
+                'developer': '개발자',
+                'reviewer': '검토자',
+                'documenter': '문서화'
+            };
+            return names[agent] || agent;
+        }
+
+        // 중간 결과 표시
+        function displayAgentResult(agent, summary) {
+            if (!summary) return;
+
+            const container = document.getElementById('resultsContainer');
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.id = `result-${agent}`;
+
+            let header = `<div class="result-card-header">
+                <span class="result-card-icon">${summary.icon || '📋'}</span>
+                <span>${summary.label || getAgentName(agent)}</span>
+            </div>`;
+
+            let content = '';
+
+            // sections 형식
+            if (summary.sections && Array.isArray(summary.sections)) {
+                content = summary.sections.map(section => {
+                    let sectionHtml = `<div class="result-section">
+                        <div class="result-section-title">${section.title}</div>`;
+
+                    if (section.items && Array.isArray(section.items)) {
+                        sectionHtml += '<div class="result-section-items">';
+                        section.items.forEach(item => {
+                            sectionHtml += `<div class="result-item">${escapeHtml(String(item))}</div>`;
+                        });
+                        sectionHtml += '</div>';
+                    } else if (section.content) {
+                        sectionHtml += `<div class="result-content">${escapeHtml(section.content)}</div>`;
+                    }
+
+                    sectionHtml += '</div>';
+                    return sectionHtml;
+                }).join('');
+            }
+
+            card.innerHTML = header + content;
+
+            // 기존 카드 업데이트 또는 추가
+            const existing = document.getElementById(`result-${agent}`);
+            if (existing) {
+                existing.replaceWith(card);
+            } else {
+                container.appendChild(card);
+            }
+        }
+
+        // HTML 이스케이프
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 결과 표시
+        async function showResult() {
+            try {
+                const response = await fetch(`/api/download/${outputFileName}`);
+                const markdown = await response.text();
+
+                const html = markdownToHtml(markdown);
+                document.getElementById('resultContent').innerHTML = html;
+
+                showScreen('result');
+            } catch (error) {
+                addLog('error', `결과 로드 실패: ${error.message}`);
+            }
+        }
+
+        // Markdown 파싱 (간단한 구현)
+        function markdownToHtml(markdown) {
+            let html = markdown;
+
+            // 제목
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+            // 코드 블록
+            html = html.replace(/```(.*?)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+
+            // 인라인 코드
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // 테이블 (기본 처리)
+            const tableRegex = /\|(.+)\n\|[-\s|:]+\n((?:\|.+\n?)*)/g;
+            html = html.replace(tableRegex, (match) => {
+                const rows = match.split('\n').filter(r => r.trim()).map(r => r.split('|').slice(1, -1).map(c => c.trim()));
+                const table = '<table><thead><tr>' + rows[0].map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+                const tableBody = rows.slice(2).map(row => '<tr>' + row.map(c => `<td>${c}</td>`).join('') + '</tr>').join('');
+                return table + tableBody + '</tbody></table>';
+            });
+
+            // 굵은 글씨
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+            // 링크
+            html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+            // 줄바꿈
+            html = html.replace(/\n\n/g, '</p><p>');
+            html = '<p>' + html + '</p>';
+
+            return html;
+        }
+
+        // 다운로드 (Markdown)
+        document.getElementById('downloadMdBtn').addEventListener('click', () => {
+            if (outputFileName) {
+                window.location.href = `/api/download/${outputFileName}`;
+            }
+        });
+
+        // HTML 내보내기
+        document.getElementById('downloadHtmlBtn').addEventListener('click', () => {
+            if (outputFileName) {
+                window.location.href = `/api/download/${outputFileName}/html`;
+            }
+        });
+
+        // PDF 내보내기
+        document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+            if (outputFileName) {
+                window.location.href = `/api/download/${outputFileName}/pdf`;
+            }
+        });
+
+        // Word 내보내기
+        document.getElementById('downloadDocxBtn').addEventListener('click', () => {
+            if (outputFileName) {
+                window.location.href = `/api/download/${outputFileName}/docx`;
+            }
+        });
+
+        // JSON 내보내기
+        document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+            if (outputFileName) {
+                window.location.href = `/api/download/${outputFileName}/json`;
+            }
+        });
+
+        // 탭 전환
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.dataset.tab;
+
+                // 버튼 활성화 상태 변경
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // 탭 콘텐츠 표시 변경
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(`tab-${tabName}`).classList.add('active');
+            });
+        });
+
+        // 새 분석
+        document.getElementById('newAnalysisBtn').addEventListener('click', () => {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('textInput').value = '';
+            document.querySelectorAll('.pipeline-step').forEach(el => {
+                el.classList.remove('active', 'done');
+                el.classList.add('pending');
+            });
+            document.getElementById('logContainer').innerHTML = '';
+            document.getElementById('resultsContainer').innerHTML = '';
+            currentJobId = null;
+            outputFileName = null;
+            agentResults = {};
+            showScreen('upload');
+        });
+
+        // 취소
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            if (eventSource) {
+                eventSource.close();
+            }
+            document.getElementById('newAnalysisBtn').click();
+        });
+    </script>
+</body>
+</html>
