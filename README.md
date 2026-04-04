@@ -5,7 +5,7 @@
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-green?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Claude AI](https://img.shields.io/badge/Claude-Sonnet%204.5-orange)](https://www.anthropic.com/)
-[![Tests](https://img.shields.io/badge/Tests-119%20Passed-brightgreen)](#검증)
+[![Tests](https://img.shields.io/badge/Tests-134%20Passed-brightgreen)](#검증)
 [![Coverage](https://img.shields.io/badge/Coverage-70%2B%25-brightgreen)](#코드-품질)
 [![License](https://img.shields.io/badge/License-MIT-green)](#라이센스)
 
@@ -64,6 +64,22 @@ Markdown → HTML → PDF → Word → JSON
 - 📤 **분석 공유**: 링크로 결과 공유
 - 🔄 **버전 관리**: 이전 분석과 비교
 - 📥 **이력 조회**: 모든 분석 기록 저장
+
+### 6️⃣ **자동 품질 검사** ⭐ Phase 4
+- 🏆 **품질 점수**: 분석 결과를 95점 기준으로 자동 검사
+- 🔄 **자동 재시도**: 낮은 점수 에이전트는 feedback과 함께 자동 재실행 (최대 2회)
+- 📊 **상세 점수**: 에이전트별 점수 + 개선 피드백 제공
+
+### 7️⃣ **영향도 자동 분석** ⭐ Phase 4
+- 🗺️ **레이어별 영향도**: Controller/Service/DAO/Mapper/JSP/JavaScript별 파일 영향 자동 분석
+- 📋 **변경 연쇄**: 어떤 파일이 변경되면 다른 파일들이 어떻게 영향받는지 표시
+- 📦 **DB 변경사항**: 신규/수정 테이블 및 컬럼 상세 분석
+
+### 8️⃣ **대화형 요구사항 정제** ⭐ Phase 5A
+- 💬 **채팅 UI**: 분석 완료 후 "S3로 바꾸면?", "보안 위험은?" 같은 질문으로 정제
+- 🔁 **자동 재분석**: 변경 요청 시 ImpactAnalyzer 자동 재실행으로 영향도 즉시 반영
+- 📝 **히스토리 저장**: 모든 대화가 DB에 영구 저장되어 나중에 참고 가능
+- 🎯 **추천 질문**: AI가 자동으로 다음 질문 제안
 
 ---
 
@@ -168,6 +184,24 @@ python app.py
 
 ---
 
+### 4️⃣ 팀장의 일상 - 대화형 요구사항 정제 ⭐ Phase 5
+**상황**: "게시판 파일 첨부 기능 추가" 요구사항 분석
+
+**처리 과정**:
+1. AI가 분석 완료 (2분)
+2. **"S3로 저장소 바꾸면?"** 질문
+3. AI가 ImpactAnalyzer 자동 재실행
+   - 변경 파일: 6개 (로컬 저장소 5개 → S3 기반)
+   - 영향도: MEDIUM → HIGH 상향
+   - 기존 로컬 첨부 마이그레이션 전략 제시
+4. **"기존 로컬 첨부는?"** 추가 질문
+5. AI가 히스토리를 유지하면서 답변
+6. 모든 대화가 DB에 저장되어 차후 참고 가능
+
+**효과**: 분석 후 반복 질문으로 완성도 있는 설계 ✨
+
+---
+
 ## 🏗️ 아키텍처
 
 ### 시스템 구성
@@ -194,9 +228,14 @@ python app.py
         │     ↓ context["planner"]       │
         │  2️⃣ DeveloperAgent            │
         │     ↓ context["developer"]     │
-        │  3️⃣ ReviewerAgent             │
+        │  3️⃣ ImpactAnalyzerAgent ⭐    │
+        │     ↓ context["impact_analyzer"]│
+        │  4️⃣ ReviewerAgent             │
         │     ↓ context["reviewer"]      │
-        │  4️⃣ DocumenterAgent           │
+        │  5️⃣ QualityCheckAgent ⭐      │
+        │     ├─ 품질 검사 (95점 기준)   │
+        │     └─ 필요시 재시도           │
+        │  6️⃣ DocumenterAgent           │
         │     ↓ context["documenter"]    │
         │                                │
         └────────────────┬───────────────┘
@@ -223,8 +262,11 @@ python app.py
 |---------|------|------|------|
 | **Planner** | 원본 요구사항 | 핵심/기능/비기능 요구사항 | 분석 & 분류 |
 | **Developer** | Planner 결과 | 기술 설계, DB 변경, 영향도 | 기술 구현 계획 |
-| **Reviewer** | Planner + Developer | 보안, 성능, 리스크 | 문제점 검토 |
+| **ImpactAnalyzer** ⭐ | Planner + Developer | 레이어별 파일 영향도, 변경 연쇄 | 시스템 변경 범위 분석 |
+| **Reviewer** | 모든 분석 결과 | 보안, 성능, 일정 리스크 | 문제점 검토 |
+| **QualityChecker** ⭐ | 4개 에이전트 결과 | 점수 (0-100), 개선 피드백 | 품질 검사 & 자동 재시도 |
 | **Documenter** | 모든 컨텍스트 | 최종 마크다운 | 문서 통합 |
+| **ChatAgent** ⭐ | 기존 분석 + 사용자 질문 | 답변 또는 재분석 결과 | 대화형 정제 |
 
 ---
 
