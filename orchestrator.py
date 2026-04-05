@@ -10,6 +10,7 @@ from agents.planner import PlannerAgent
 from agents.quality_checker import MAX_RETRIES, QUALITY_THRESHOLD, QualityCheckerAgent
 from agents.reviewer import ReviewerAgent
 from utils.claude_client import ClaudeClient
+from utils.context_builder import KOREAN_INSTRUCTION
 from database import Database
 
 # 분석 에이전트 실행 순서 (documenter, quality_checker 제외)
@@ -39,6 +40,7 @@ class Orchestrator:
         """입력 문서를 분석해 실행할 에이전트를 선택한다."""
         self.emit("status", {"agent": "orchestrator", "message": "에이전트 선택 중..."})
         prompt = (
+            f"{KOREAN_INSTRUCTION}\n\n"
             "아래 입력 문서를 분석하여 필요한 에이전트만 선택하세요.\n"
             "불필요한 에이전트는 제외해서 분석 시간을 단축하세요.\n\n"
             "사용 가능한 에이전트와 호출 기준:\n"
@@ -105,6 +107,9 @@ class Orchestrator:
             qc = context.get("quality_checker", {})
             score = qc.get("total_score", 0)
             agent_scores = qc.get("agent_scores", {})
+            # agent_scores가 dict가 아닌 경우 방어 처리 (LLM이 예상치 못한 형태로 반환 시)
+            if not isinstance(agent_scores, dict):
+                agent_scores = {}
 
             # 개별 에이전트 점수 표시
             self._emit_agent_scores(agent_scores, score)
@@ -139,7 +144,8 @@ class Orchestrator:
             for agent_name in analysis_agents:
                 if agent_name not in retry_agents:
                     continue
-                feedback = agent_scores.get(agent_name, {}).get("feedback", "")
+                score_data_f = agent_scores.get(agent_name, {})
+                feedback = score_data_f.get("feedback", "") if isinstance(score_data_f, dict) else ""
                 context = self._run_agent(agent_name, context, feedback=feedback, examples=examples)
 
                 # 재실행된 에이전트 이후 에이전트들도 순서대로 다시 실행 (선택된 범위 내)
@@ -163,7 +169,7 @@ class Orchestrator:
 
     def _emit_agent_scores(self, agent_scores: Dict[str, Any], total_score: int) -> None:
         """각 에이전트의 개별 점수와 피드백을 상세히 표시"""
-        if not agent_scores:
+        if not agent_scores or not isinstance(agent_scores, dict):
             return
 
         # 헤더 메시지
@@ -178,6 +184,9 @@ class Orchestrator:
                 continue
 
             score_data = agent_scores[agent_name]
+            # score_data가 dict이 아닌 경우 방어 처리 (LLM이 list 등으로 반환 시)
+            if not isinstance(score_data, dict):
+                score_data = {}
             agent_score = score_data.get("score", 0)
             feedback = score_data.get("feedback", "")
 
@@ -224,7 +233,10 @@ class Orchestrator:
                 "reviewer": "검토자",
             }.get(agent_name, agent_name)
 
-            feedback = agent_scores.get(agent_name, {}).get("feedback", "")
+            score_data_r = agent_scores.get(agent_name, {})
+            if not isinstance(score_data_r, dict):
+                score_data_r = {}
+            feedback = score_data_r.get("feedback", "")
             if feedback:
                 self.emit("status", {
                     "agent": "quality_checker",
@@ -336,8 +348,11 @@ class Orchestrator:
         if agent_name == "quality_checker":
             qc = result or {}
             agent_scores = qc.get("agent_scores", {})
+            if not isinstance(agent_scores, dict):
+                agent_scores = {}
             score_items = [
-                f"{a}: {v.get('score', 0)}점" for a, v in agent_scores.items()
+                f"{a}: {v.get('score', 0) if isinstance(v, dict) else v}점"
+                for a, v in agent_scores.items()
             ]
             status = "✅ 통과" if qc.get("pass") else "🔄 재시도 필요"
             return {

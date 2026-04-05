@@ -115,7 +115,7 @@ Layer 3 - 이전 분석 참조: 분석 시작 시 get_recent_context_analyses(li
 
 ## 중요 규칙
 
-### 한국어 강제 — 모든 에이전트에 반드시 적용
+### 한국어 강제 — 모든 에이전트 + Orchestrator에 반드시 적용
 
 Ollama(qwen2.5:7b) 기본 언어가 중국어이므로 이중 보호가 필수:
 
@@ -131,6 +131,8 @@ system_prompt="You are a ... agent. Always respond in Korean only."
 
 `LLMClient`는 `_korean_system_prompt()`로 system_prompt에 자동 추가하지만, `ClaudeClient`는 자동 추가 없음 → user_prompt의 `KOREAN_INSTRUCTION`이 유일한 보호막.
 
+**주의**: `orchestrator.py`의 `select_agents()` 프롬프트에도 반드시 `KOREAN_INSTRUCTION` 포함 필요. 에이전트뿐 아니라 Orchestrator 자체도 LLM을 호출하므로 동일 규칙 적용.
+
 새 에이전트 추가 시 두 가지 모두 빠뜨리면 중국어 출력 발생.
 
 ### 피드백 기반 재실행
@@ -143,6 +145,28 @@ context = agent.run(context, feedback=feedback)  # feedback 파라미터 필수
 ### JSON 파싱 안정성
 
 `claude_client.py`의 `_parse_json_safely()`가 마크다운 fence, 내장 JSON 등을 자동 처리. Claude가 예상치 못한 형식으로 반환하면 이 메서드에 폴백 패턴 추가.
+
+### qwen2.5:7b LLM 응답 형태 방어 처리
+
+qwen2.5:7b는 스키마를 무시하고 예상치 못한 형태로 반환할 수 있음. 특히 `quality_checker`의 `agent_scores`:
+
+```python
+# LLM이 아래처럼 list로 반환할 수 있음 (예상: dict)
+# "agent_scores": {"planner": [90, "피드백"]}  ← list
+# "agent_scores": {"planner": {"score": 90, "feedback": "피드백"}}  ← 정상 dict
+
+# 방어 처리 패턴
+agent_scores = qc.get("agent_scores", {})
+if not isinstance(agent_scores, dict):
+    agent_scores = {}
+
+score_data = agent_scores.get(agent_name, {})
+if not isinstance(score_data, dict):
+    score_data = {}
+agent_score = score_data.get("score", 0)
+```
+
+`orchestrator.py`의 `_emit_agent_scores()`, `_emit_retry_feedback()`, retry 루프 feedback 추출 모두 이 방어 처리 적용되어 있음.
 
 ### DocumenterAgent 템플릿
 

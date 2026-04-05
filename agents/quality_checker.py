@@ -27,19 +27,19 @@ class QualityCheckerAgent:
             "각 에이전트의 결과를 0~100점으로 채점하고 부족한 부분에 구체적인 피드백을 제공하세요.\n"
             "95점 미만인 에이전트는 반드시 retry_agents 목록에 포함하세요.\n"
             "total_score는 4개 에이전트 점수의 평균입니다.\n"
-            "반드시 JSON으로만 답변하세요.\n"
+            "반드시 JSON으로만 답변하세요. agent_scores의 각 값은 반드시 {\"score\": 숫자, \"feedback\": \"문자열\"} 형태여야 합니다.\n"
             "스키마:\n"
             "{\n"
             '  "total_score": 0,\n'
             '  "pass": false,\n'
             '  "agent_scores": {\n'
-            '    "planner":         {"score": 0, "feedback": ""},\n'
-            '    "developer":       {"score": 0, "feedback": ""},\n'
-            '    "impact_analyzer": {"score": 0, "feedback": ""},\n'
-            '    "reviewer":        {"score": 0, "feedback": ""}\n'
+            '    "planner":         {"score": 0, "feedback": "구체적인 피드백"},\n'
+            '    "developer":       {"score": 0, "feedback": "구체적인 피드백"},\n'
+            '    "impact_analyzer": {"score": 0, "feedback": "구체적인 피드백"},\n'
+            '    "reviewer":        {"score": 0, "feedback": "구체적인 피드백"}\n'
             "  },\n"
             '  "retry_agents": [],\n'
-            '  "overall_feedback": ""\n'
+            '  "overall_feedback": "전체 피드백"\n'
             "}\n\n"
             f"[기획 결과]\n{json.dumps(planner_data, ensure_ascii=False)}\n\n"
             f"[개발 분석 결과]\n{json.dumps(developer_data, ensure_ascii=False)}\n\n"

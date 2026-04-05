@@ -373,6 +373,8 @@ async def run_analysis(job_id: str, analysis_id: str, document: str):
         queue_manager.complete_job(job_id)
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         error_msg = f"분석 실패: {str(e)}"
         logger.analysis_error(analysis_id, error_msg)
         db.update_analysis_error(analysis_id, error_msg)
