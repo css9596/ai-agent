@@ -125,16 +125,24 @@ if (Test-Path $exePath) {
     }
 
     # Copy all yml/yaml files
-    $ymlFiles = Get-ChildItem -Path $projectDir -Filter "*.yml" -ErrorAction SilentlyContinue
-    $ymlFiles += Get-ChildItem -Path $projectDir -Filter "*.yaml" -ErrorAction SilentlyContinue
+    Write-Host "  Searching for yml files in: $projectDir" -ForegroundColor Gray
 
-    foreach ($ymlFile in $ymlFiles) {
-        try {
-            Copy-Item -Path $ymlFile.FullName -Destination ".\dist\" -Force -ErrorAction Stop
-            Write-Host "  ✓ $($ymlFile.Name)" -ForegroundColor Gray
-        } catch {
-            $failedFiles += $ymlFile.Name
-            Write-Host "  ✗ $($ymlFile.Name) (failed)" -ForegroundColor Red
+    $ymlFiles = @()
+    $ymlFiles += Get-ChildItem -Path "$projectDir\*.yml" -File -ErrorAction SilentlyContinue
+    $ymlFiles += Get-ChildItem -Path "$projectDir\*.yaml" -File -ErrorAction SilentlyContinue
+
+    if ($ymlFiles.Count -eq 0) {
+        Write-Host "  (No yml files found)" -ForegroundColor Gray
+    } else {
+        foreach ($ymlFile in $ymlFiles) {
+            try {
+                $destPath = Join-Path ".\dist" $ymlFile.Name
+                Copy-Item -Path $ymlFile.FullName -Destination $destPath -Force -ErrorAction Stop
+                Write-Host "  ✓ $($ymlFile.Name)" -ForegroundColor Gray
+            } catch {
+                $failedFiles += $ymlFile.Name
+                Write-Host "  ✗ $($ymlFile.Name) (failed: $_)" -ForegroundColor Red
+            }
         }
     }
 

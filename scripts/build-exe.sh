@@ -108,16 +108,25 @@ if [ -f "dist/AI분석서생성" ] || [ -f "dist/AI분석서생성.exe" ]; then
     done
 
     # Copy all yml/yaml files
-    for ymlFile in *.yml *.yaml; do
+    echo "  Searching for yml files in: $PROJECT_DIR" >&2
+
+    YML_FOUND=0
+    for ymlFile in "$PROJECT_DIR"/*.yml "$PROJECT_DIR"/*.yaml; do
         if [ -f "$ymlFile" ]; then
+            YML_FOUND=1
+            ymlFileName=$(basename "$ymlFile")
             if cp "$ymlFile" dist/ 2>/dev/null; then
-                echo "  ✓ $ymlFile"
+                echo "  ✓ $ymlFileName"
             else
-                FAILED_FILES+=("$ymlFile")
-                echo "  ✗ $ymlFile (복사 실패)"
+                FAILED_FILES+=("$ymlFileName")
+                echo "  ✗ $ymlFileName (복사 실패)"
             fi
         fi
     done
+
+    if [ $YML_FOUND -eq 0 ]; then
+        echo "  (yml 파일 없음)" >&2
+    fi
 
     FOLDERS_TO_COPY=("scripts" "agents" "utils" "static")
     for folder in "${FOLDERS_TO_COPY[@]}"; do
