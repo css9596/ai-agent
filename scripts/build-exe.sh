@@ -92,18 +92,39 @@ if [ -f "dist/AI분석서생성" ] || [ -f "dist/AI분석서생성.exe" ]; then
         "requirements.txt"
     )
 
+    FAILED_FILES=()
     for file in "${FILES_TO_COPY[@]}"; do
         if [ -f "$file" ]; then
-            cp "$file" dist/
+            if cp "$file" dist/ 2>/dev/null; then
+                echo "  ✓ $file"
+            else
+                FAILED_FILES+=("$file")
+                echo "  ✗ $file (복사 실패)"
+            fi
+        else
+            FAILED_FILES+=("$file")
+            echo "  ✗ $file (파일 없음)"
         fi
     done
 
     FOLDERS_TO_COPY=("scripts" "agents" "utils" "static")
     for folder in "${FOLDERS_TO_COPY[@]}"; do
         if [ -d "$folder" ]; then
-            cp -r "$folder" dist/
+            if cp -r "$folder" dist/ 2>/dev/null; then
+                echo "  ✓ $folder/"
+            else
+                FAILED_FILES+=("$folder")
+                echo "  ✗ $folder/ (복사 실패)"
+            fi
+        else
+            FAILED_FILES+=("$folder")
+            echo "  ✗ $folder/ (폴더 없음)"
         fi
     done
+
+    if [ ${#FAILED_FILES[@]} -gt 0 ]; then
+        echo "⚠ 경고: 일부 파일 복사 실패 - ${FAILED_FILES[*]}" >&2
+    fi
 
     echo "✓ 파일 복사 완료"
     echo ""

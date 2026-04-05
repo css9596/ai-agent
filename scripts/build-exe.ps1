@@ -107,18 +107,43 @@ if (Test-Path $exePath) {
         "requirements.txt"
     )
 
+    $failedFiles = @()
     foreach ($file in $filesToCopy) {
-        if (Test-Path $file) {
-            Copy-Item -Path $file -Destination ".\dist\" -Force
+        $fullPath = Join-Path $projectDir $file
+        if (Test-Path $fullPath) {
+            try {
+                Copy-Item -Path $fullPath -Destination ".\dist\" -Force -ErrorAction Stop
+                Write-Host "  ✓ $file" -ForegroundColor Gray
+            } catch {
+                $failedFiles += $file
+                Write-Host "  ✗ $file (failed)" -ForegroundColor Red
+            }
+        } else {
+            $failedFiles += $file
+            Write-Host "  ✗ $file (not found)" -ForegroundColor Red
         }
     }
 
     # Copy folders
     $foldersToCopy = @("scripts", "agents", "utils", "static")
     foreach ($folder in $foldersToCopy) {
-        if (Test-Path $folder) {
-            Copy-Item -Path $folder -Destination ".\dist\$folder" -Recurse -Force
+        $fullPath = Join-Path $projectDir $folder
+        if (Test-Path $fullPath) {
+            try {
+                Copy-Item -Path $fullPath -Destination ".\dist\$folder" -Recurse -Force -ErrorAction Stop
+                Write-Host "  ✓ $folder/" -ForegroundColor Gray
+            } catch {
+                $failedFiles += $folder
+                Write-Host "  ✗ $folder/ (failed)" -ForegroundColor Red
+            }
+        } else {
+            $failedFiles += $folder
+            Write-Host "  ✗ $folder/ (not found)" -ForegroundColor Red
         }
+    }
+
+    if ($failedFiles.Count -gt 0) {
+        Write-Host "WARNING: Failed to copy some files: $($failedFiles -join ', ')" -ForegroundColor Yellow
     }
 
     Write-Host "OK: Project files copied" -ForegroundColor Green
