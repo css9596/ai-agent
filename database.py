@@ -77,6 +77,20 @@ class Database:
                 )
             """)
 
+            # Few-shot Learning: 학습 예시 관리 테이블
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS training_examples (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    input_text TEXT NOT NULL,
+                    output_markdown TEXT NOT NULL,
+                    category TEXT,
+                    quality_score INTEGER DEFAULT 5,
+                    is_active INTEGER DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # 인덱스
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_job_id
@@ -93,6 +107,14 @@ class Database:
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_project_id
                 ON comparisons(project_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_training_quality
+                ON training_examples(quality_score DESC, is_active)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_training_category
+                ON training_examples(category)
             """)
 
             conn.commit()
@@ -408,6 +430,122 @@ class Database:
             cursor.execute("SELECT * FROM comparisons WHERE id = ?", (comparison_id,))
             result = cursor.fetchone()
             return dict(result) if result else None
+
+    # ===================================================================
+    # Few-shot Learning: 학습 예시 관리
+    # ===================================================================
+
+    def add_training_example(
+        self,
+        example_id: str,
+        title: str,
+        input_text: str,
+        output_markdown: str,
+        category: Optional[str] = None,
+        quality_score: int = 5
+    ) -> None:
+        """학습 예시 추가"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO training_examples
+                (id, title, input_text, output_markdown, category, quality_score, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
+            """, (example_id, title, input_text, output_markdown, category, quality_score))
+            conn.commit()
+
+    def get_training_examples(
+        self,
+        limit: int = 3,
+        is_active: int = 1,
+        category: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """품질 높은 학습 예시 조회 (활성만, 품질순)"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            if category:
+                cursor.execute("""
+                    SELECT id, title, input_text, output_markdown, category, quality_score
+                    FROM training_examples
+                    WHERE is_active = ? AND category = ?
+                    ORDER BY quality_score DESC, created_at DESC
+                    LIMIT ?
+                """, (is_active, category, limit))
+            else:
+                cursor.execute("""
+                    SELECT id, title, input_text, output_markdown, category, quality_score
+                    FROM training_examples
+                    WHERE is_active = ?
+                    ORDER BY quality_score DESC, created_at DESC
+                    LIMIT ?
+                """, (is_active, limit))
+
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_all_training_examples(
+        self,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """모든 학습 예시 조회 (관리용)"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM training_examples
+                ORDER BY quality_score DESC, created_at DESC
+                LIMIT ? OFFSET ?
+            """, (limit, offset))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def update_training_example(
+        self,
+        example_id: str,
+        quality_score: Optional[int] = None,
+        is_active: Optional[int] = None
+    ) -> None:
+        """학습 예시 업데이트"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            if quality_score is not None and is_active is not None:
+                cursor.execute("""
+                    UPDATE training_examples
+                    SET quality_score = ?, is_active = ?
+                    WHERE id = ?
+                """, (quality_score, is_active, example_id))
+            elif quality_score is not None:
+                cursor.execute("""
+                    UPDATE training_examples
+                    SET quality_score = ?
+                    WHERE id = ?
+                """, (quality_score, example_id))
+            elif is_active is not None:
+                cursor.execute("""
+                    UPDATE training_examples
+                    SET is_active = ?
+                    WHERE id = ?
+                """, (is_active, example_id))
+
+            conn.commit()
+
+    def delete_training_example(self, example_id: str) -> None:
+        """학습 예시 삭제"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                DELETE FROM training_examples WHERE id = ?
+            """, (example_id,))
+            conn.commit()
+
+    def get_training_examples_count(self) -> int:
+        """등록된 학습 예시 총 개수"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM training_examples WHERE is_active = 1")
+            return cursor.fetchone()[0]
 
 
 # 전역 DB 인스턴스

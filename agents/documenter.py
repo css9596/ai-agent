@@ -9,8 +9,15 @@ class DocumenterAgent:
     def __init__(self, client: ClaudeClient) -> None:
         self.client = client
 
-    def run(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def run(self, context: Dict[str, Any], feedback: str = "", examples: list = None) -> Dict[str, Any]:
         print("[Documenter] 분석 중...")
+        examples_section = ""
+        if examples:
+            examples_section = "\n\n[참고 예시 - 아래 예시와 동일한 수준의 품질로 작성]\n"
+            for i, ex in enumerate(examples[:2], 1):
+                title = ex.get("title", f"예시 {i}")
+                output_preview = ex.get("output_markdown", "")[:400]
+                examples_section += f"\n예시 {i} ({title}):\n{output_preview}...\n"
         template = (
             "# 개발 분석서\n\n"
             "## 1. 요청 요약\n"
@@ -68,6 +75,7 @@ class DocumenterAgent:
             "모든 섹션은 실제 내용으로 채우고, 비어 있는 섹션은 '추가 확인 필요'로 명시하세요.\n"
             "지나치게 장황하지 않게 실무용으로 간결하게 작성하세요.\n\n"
             f"[출력 템플릿]\n{template}\n\n"
+            f"{examples_section}"
             f"[통합 컨텍스트]\n{context}"
         )
         markdown = self.client.request_text(

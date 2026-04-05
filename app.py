@@ -1349,6 +1349,86 @@ def run_comparison_in_background(
 
 
 # ============================================================================
+# 학습 예시 관리 API (Few-shot Learning)
+# ============================================================================
+
+@app.post("/api/training/examples")
+async def add_training_example(
+    title: str = Form(...),
+    input_text: str = Form(...),
+    output_markdown: str = Form(...),
+    category: str = Form(default=""),
+    quality_score: int = Form(default=5)
+):
+    """새로운 학습 예시 등록"""
+    try:
+        example_id = str(uuid.uuid4())
+        db.add_training_example(
+            example_id=example_id,
+            title=title,
+            input_text=input_text,
+            output_markdown=output_markdown,
+            category=category,
+            quality_score=quality_score
+        )
+        logger.info("학습 예시 추가", example_id=example_id, title=title, category=category)
+        return {"success": True, "example_id": example_id}
+    except Exception as e:
+        logger.error("학습 예시 추가 실패", error=str(e))
+        raise HTTPException(status_code=500, detail=f"예시 등록 실패: {str(e)}")
+
+
+@app.get("/api/training/examples")
+async def get_training_examples(limit: int = 50, offset: int = 0):
+    """모든 학습 예시 조회 (관리자 대시보드용)"""
+    try:
+        examples = db.get_all_training_examples(limit=limit, offset=offset)
+        count = db.get_training_examples_count()
+        return {
+            "success": True,
+            "examples": examples,
+            "total": count,
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        logger.error("학습 예시 조회 실패", error=str(e))
+        raise HTTPException(status_code=500, detail=f"예시 조회 실패: {str(e)}")
+
+
+@app.delete("/api/training/examples/{example_id}")
+async def delete_training_example(example_id: str):
+    """학습 예시 삭제"""
+    try:
+        db.delete_training_example(example_id)
+        logger.info("학습 예시 삭제", example_id=example_id)
+        return {"success": True, "message": f"예시 {example_id} 삭제 완료"}
+    except Exception as e:
+        logger.error("학습 예시 삭제 실패", example_id=example_id, error=str(e))
+        raise HTTPException(status_code=500, detail=f"예시 삭제 실패: {str(e)}")
+
+
+@app.put("/api/training/examples/{example_id}")
+async def update_training_example(
+    example_id: str,
+    quality_score: Optional[int] = None,
+    is_active: Optional[int] = None
+):
+    """학습 예시 업데이트 (활성화/비활성화 또는 품질 점수 변경)"""
+    try:
+        db.update_training_example(
+            example_id=example_id,
+            quality_score=quality_score,
+            is_active=is_active
+        )
+        logger.info("학습 예시 업데이트", example_id=example_id, quality_score=quality_score, is_active=is_active)
+        return {"success": True, "message": f"예시 {example_id} 업데이트 완료"}
+    except Exception as e:
+        logger.error("학습 예시 업데이트 실패", example_id=example_id, error=str(e))
+        raise HTTPException(status_code=500, detail=f"예시 업데이트 실패: {str(e)}")
+
+
+# ============================================================================
 # 애플리케이션 시작
 # ============================================================================
 

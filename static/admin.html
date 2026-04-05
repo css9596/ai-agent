@@ -48,6 +48,9 @@
                 <a onclick="showSection('health')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
                     <i class="fas fa-heartbeat mr-2 w-5"></i> 헬스 체크
                 </a>
+                <a onclick="showSection('training')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
+                    <i class="fas fa-book mr-2 w-5"></i> 학습 예시
+                </a>
             </nav>
 
             <div class="mt-8 p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
@@ -222,6 +225,64 @@
                         <!-- Health status will be inserted here -->
                     </div>
                 </section>
+
+                <!-- 학습 예시 -->
+                <section id="section-training" class="hidden space-y-8">
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold text-white mb-2">📚 학습 예시</h1>
+                            <p class="text-gray-400">분석 모델의 학습용 예시를 관리하세요</p>
+                        </div>
+                        <button onclick="showAddExampleForm()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-smooth flex items-center gap-2">
+                            <i class="fas fa-plus"></i> 새 예시 등록
+                        </button>
+                    </div>
+
+                    <!-- 예시 등록 폼 (초기에는 숨김) -->
+                    <div id="add-example-form" class="hidden bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                        <h2 class="text-white font-bold mb-4">새로운 학습 예시 등록</h2>
+                        <form onsubmit="saveTrainingExample(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-gray-300 mb-2">예시 제목</label>
+                                <input type="text" id="example-title" placeholder="예: 파일 첨부 기능" class="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-lg" required>
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 mb-2">입력 요구사항</label>
+                                <textarea id="example-input" placeholder="사용자 요구사항을 입력하세요..." class="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-lg h-24" required></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 mb-2">기대되는 분석 결과 (마크다운)</label>
+                                <textarea id="example-output" placeholder="분석 결과를 마크다운 형식으로 입력하세요..." class="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-lg h-32" required></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-300 mb-2">카테고리</label>
+                                    <input type="text" id="example-category" placeholder="예: 게시판" class="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-300 mb-2">품질 점수 (1-10)</label>
+                                    <input type="number" id="example-quality" min="1" max="10" value="5" class="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-lg">
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-smooth">저장</button>
+                                <button type="button" onclick="hideAddExampleForm()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-semibold transition-smooth">취소</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 예시 목록 -->
+                    <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+                        <div class="p-6 border-b border-slate-700">
+                            <h2 class="text-white font-bold flex items-center gap-2">
+                                <i class="fas fa-list"></i> 등록된 예시
+                            </h2>
+                        </div>
+                        <div id="examples-list" class="divide-y divide-slate-700">
+                            <!-- Examples will be inserted here -->
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -259,6 +320,7 @@
             else if (sectionName === 'logs') loadLogs();
             else if (sectionName === 'settings') loadSettings();
             else if (sectionName === 'health') loadHealth();
+            else if (sectionName === 'training') loadTrainingExamples();
         }
 
         async function loadDashboard() {
@@ -440,6 +502,138 @@
                 `;
             } catch (error) {
                 console.error('헬스 체크 로드 실패:', error);
+            }
+        }
+
+        // ========== 학습 예시 관리 함수 ==========
+
+        function showAddExampleForm() {
+            document.getElementById('add-example-form').classList.remove('hidden');
+        }
+
+        function hideAddExampleForm() {
+            document.getElementById('add-example-form').classList.add('hidden');
+            document.getElementById('example-title').value = '';
+            document.getElementById('example-input').value = '';
+            document.getElementById('example-output').value = '';
+            document.getElementById('example-category').value = '';
+            document.getElementById('example-quality').value = '5';
+        }
+
+        async function saveTrainingExample(event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            formData.append('title', document.getElementById('example-title').value);
+            formData.append('input_text', document.getElementById('example-input').value);
+            formData.append('output_markdown', document.getElementById('example-output').value);
+            formData.append('category', document.getElementById('example-category').value);
+            formData.append('quality_score', document.getElementById('example-quality').value);
+
+            try {
+                const response = await fetch('/api/training/examples', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert('예시가 저장되었습니다.');
+                    hideAddExampleForm();
+                    loadTrainingExamples();
+                } else {
+                    alert('예시 저장에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('예시 저장 오류:', error);
+                alert('오류: ' + error.message);
+            }
+        }
+
+        async function loadTrainingExamples() {
+            try {
+                const response = await fetch('/api/training/examples?limit=50&offset=0');
+                const data = await response.json();
+
+                const listContainer = document.getElementById('examples-list');
+                listContainer.innerHTML = '';
+
+                if (!data.examples || data.examples.length === 0) {
+                    listContainer.innerHTML = '<div class="p-6 text-gray-400">등록된 예시가 없습니다.</div>';
+                    return;
+                }
+
+                data.examples.forEach(example => {
+                    const statusBadge = example.is_active ? '<span class="text-xs bg-green-600 px-2 py-1 rounded">활성</span>' : '<span class="text-xs bg-gray-600 px-2 py-1 rounded">비활성</span>';
+                    const qualityStars = '⭐'.repeat(Math.round(example.quality_score / 2));
+
+                    const exampleHtml = `
+                        <div class="p-4 hover:bg-slate-700 transition-smooth">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 class="text-white font-semibold">${example.title}</h3>
+                                    <p class="text-sm text-gray-400">${example.category || '카테고리 없음'}</p>
+                                </div>
+                                <div class="flex gap-2 items-center">
+                                    <span class="text-yellow-400 text-sm">${qualityStars}</span>
+                                    ${statusBadge}
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-300 mb-3">입력: ${example.input_text.substring(0, 100)}...</p>
+                            <div class="flex gap-2">
+                                <button onclick="deleteTrainingExample('${example.id}')" class="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded transition-smooth">삭제</button>
+                                <button onclick="toggleExampleStatus('${example.id}', ${example.is_active})" class="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded transition-smooth">${example.is_active ? '비활성화' : '활성화'}</button>
+                            </div>
+                        </div>
+                    `;
+                    listContainer.innerHTML += exampleHtml;
+                });
+            } catch (error) {
+                console.error('예시 로드 실패:', error);
+                document.getElementById('examples-list').innerHTML = '<div class="p-6 text-red-400">예시 로드 실패</div>';
+            }
+        }
+
+        async function deleteTrainingExample(exampleId) {
+            if (!confirm('이 예시를 삭제하시겠습니까?')) return;
+
+            try {
+                const response = await fetch(`/api/training/examples/${exampleId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert('예시가 삭제되었습니다.');
+                    loadTrainingExamples();
+                } else {
+                    alert('예시 삭제에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('예시 삭제 오류:', error);
+                alert('오류: ' + error.message);
+            }
+        }
+
+        async function toggleExampleStatus(exampleId, currentStatus) {
+            try {
+                const response = await fetch(`/api/training/examples/${exampleId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        is_active: currentStatus ? 0 : 1
+                    })
+                });
+
+                if (response.ok) {
+                    alert('상태가 변경되었습니다.');
+                    loadTrainingExamples();
+                } else {
+                    alert('상태 변경에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('상태 변경 오류:', error);
+                alert('오류: ' + error.message);
             }
         }
 

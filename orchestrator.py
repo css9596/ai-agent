@@ -10,6 +10,7 @@ from agents.planner import PlannerAgent
 from agents.quality_checker import MAX_RETRIES, QUALITY_THRESHOLD, QualityCheckerAgent
 from agents.reviewer import ReviewerAgent
 from utils.claude_client import ClaudeClient
+from database import Database
 
 # 분석 에이전트 실행 순서 (documenter, quality_checker 제외)
 ANALYSIS_ORDER = ["planner", "developer", "impact_analyzer", "reviewer"]
@@ -62,9 +63,13 @@ class Orchestrator:
         selection = self.select_agents(document)
         context["orchestrator"] = selection
 
+        # 학습 예시 조회
+        db = Database()
+        examples = db.get_training_examples(limit=2)
+
         # 1단계: 분석 에이전트 순차 실행
         for agent_name in ANALYSIS_ORDER:
-            context = self._run_agent(agent_name, context)
+            context = self._run_agent(agent_name, context, examples=examples)
 
         # 2단계: 품질 검사 루프 (최대 MAX_RETRIES회 재시도)
         for attempt in range(MAX_RETRIES + 1):
@@ -107,16 +112,16 @@ class Orchestrator:
                 if agent_name not in retry_agents:
                     continue
                 feedback = agent_scores.get(agent_name, {}).get("feedback", "")
-                context = self._run_agent(agent_name, context, feedback=feedback)
+                context = self._run_agent(agent_name, context, feedback=feedback, examples=examples)
 
                 # 재실행된 에이전트 이후 에이전트들도 순서대로 다시 실행
                 idx = ANALYSIS_ORDER.index(agent_name)
                 for downstream in ANALYSIS_ORDER[idx + 1:]:
-                    context = self._run_agent(downstream, context)
+                    context = self._run_agent(downstream, context, examples=examples)
                 break  # 가장 앞 순서 에이전트 1개씩 처리
 
         # 3단계: 문서화
-        context = self._run_agent("documenter", context)
+        context = self._run_agent("documenter", context, examples=examples)
 
         markdown = context.get("documenter", {}).get("markdown", "# 결과 없음")
         file_path = self._save_markdown(markdown)
@@ -203,14 +208,22 @@ class Orchestrator:
                     "message": f"  ├─ {agent_label}",
                 })
 
-    def _run_agent(self, agent_name: str, context: Dict[str, Any], feedback: str = "") -> Dict[str, Any]:
+    def _run_agent(self, agent_name: str, context: Dict[str, Any], feedback: str = "", examples: List[Dict] = None) -> Dict[str, Any]:
         """단일 에이전트 실행 + 이벤트 발행."""
         self.emit("agent_start", {"agent": agent_name})
         agent = self.agent_map[agent_name]
 
-        # feedback 지원 에이전트는 keyword argument로 전달
-        if feedback and hasattr(agent, "run") and agent_name != "quality_checker":
-            context = agent.run(context, feedback=feedback)
+        # feedback/examples 지원 에이전트는 keyword argument로 전달
+        if agent_name != "quality_checker":
+            kwargs = {}
+            if feedback:
+                kwargs["feedback"] = feedback
+            if examples:
+                kwargs["examples"] = examples
+            if kwargs:
+                context = agent.run(context, **kwargs)
+            else:
+                context = agent.run(context)
         else:
             context = agent.run(context)
 
