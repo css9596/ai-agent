@@ -71,25 +71,23 @@ Write-Host ""
 # 아이콘 파일 확인
 $iconPath = ".\scripts\app_icon.ico"
 if (Test-Path $iconPath) {
-    $iconArg = "--icon=$iconPath"
+    $iconArg = @("--icon=$iconPath")
 } else {
     Write-Host "  경고: app_icon.ico를 찾을 수 없습니다 (생략)" -ForegroundColor Yellow
-    $iconArg = ""
+    $iconArg = @()
 }
 
-# PyInstaller 실행
-$cmd = @(
+# PyInstaller 실행 (Invoke-Expression 대신 직접 배열로 전달)
+$pyInstallerArgs = @(
     "--onefile",
-    '--name="AI분석서생성"',
-    '--distpath=".\dist"',
-    '--specpath=".\build"',
-    '--workpath=".\build"',
-    "--console",
-    $iconArg,
-    ".\scripts\run-app.py"
-) -join " "
+    "--name=AI분석서생성",
+    '--distpath=.\dist',
+    '--specpath=.\build',
+    '--workpath=.\build',
+    "--console"
+) + $iconArg + @(".\scripts\run-app.py")
 
-Invoke-Expression "python -m PyInstaller $cmd"
+& python -m PyInstaller $pyInstallerArgs
 
 Write-Host ""
 
