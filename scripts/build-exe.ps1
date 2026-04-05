@@ -16,36 +16,31 @@ Write-Host ""
 # Step 1: Check Python
 Write-Host "[1/4] Checking Python..." -ForegroundColor Blue
 
-$pythonCheck = & python --version 2>&1 | Out-String
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: Python not installed" -ForegroundColor Red
+$pythonPath = Get-Command python -ErrorAction SilentlyContinue
+if ($null -eq $pythonPath) {
+    Write-Host "ERROR: Python not found in PATH" -ForegroundColor Red
     Write-Host "Download: https://www.python.org/downloads/" -ForegroundColor Yellow
+    Write-Host "Make sure to check 'Add Python to PATH' during installation" -ForegroundColor Yellow
     exit 1
 }
 
-if ($pythonCheck) {
-    Write-Host "OK: $pythonCheck" -ForegroundColor Green
-} else {
-    Write-Host "ERROR: Python version not detected" -ForegroundColor Red
-    exit 1
-}
+Write-Host "OK: Python found at $($pythonPath.Source)" -ForegroundColor Green
 Write-Host ""
 
 # Step 2: Check PyInstaller
 Write-Host "[2/4] Installing PyInstaller..." -ForegroundColor Blue
 
-$pyinstCheck = & python -c "import PyInstaller" 2>&1
+python -c "import PyInstaller" 2>$null
 if ($LASTEXITCODE -eq 0) {
     Write-Host "OK: PyInstaller already installed" -ForegroundColor Green
 } else {
     Write-Host "  Installing PyInstaller..." -ForegroundColor Yellow
-    & python -m pip install pyinstaller --quiet
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "OK: PyInstaller installed" -ForegroundColor Green
-    } else {
+    python -m pip install pyinstaller --quiet
+    if ($LASTEXITCODE -ne 0) {
         Write-Host "ERROR: Failed to install PyInstaller" -ForegroundColor Red
         exit 1
     }
+    Write-Host "OK: PyInstaller installed" -ForegroundColor Green
 }
 Write-Host ""
 
