@@ -5,13 +5,17 @@
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-green?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Claude AI](https://img.shields.io/badge/Claude-Sonnet%204.5-orange)](https://www.anthropic.com/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docs.docker.com/compose/)
 [![Tests](https://img.shields.io/badge/Tests-134%20Passed-brightgreen)](#검증)
 [![Coverage](https://img.shields.io/badge/Coverage-70%2B%25-brightgreen)](#코드-품질)
+[![Offline](https://img.shields.io/badge/Offline-Supported-brightgreen)](#오프라인-환경-지원)
 [![License](https://img.shields.io/badge/License-MIT-green)](#라이센스)
 
 **비즈니스 요구사항을 자동으로 전문적인 개발 분석서로 변환하는 AI 기반 솔루션**
 
-[🌐 웹 데모](#웹-서버-실행) · [📚 문서](#문서) · [🚀 빠른 시작](#빠른-시작) · [🏗️ 아키텍처](#아키텍처)
+💻 **3가지 배포 방식 지원**: 웹 서버 (개발) · Docker Compose (팀) · Windows exe (사용자)
+
+[🚀 빠른 시작](#빠른-시작) · [📚 배포 가이드](#배포-가이드-문서) · [🏗️ 아키텍처](#아키텍처) · [❓ FAQ](#faq)
 
 </div>
 
@@ -30,7 +34,8 @@
 ✅ **고품질의 구조화된 문서** 자동 생성  
 ✅ **기술적 리스크 자동 검토**  
 ✅ **여러 형식으로 내보내기** (Markdown, PDF, Word, HTML, JSON)  
-✅ **오프라인에서도 실행 가능** (Ollama 지원)
+✅ **완전 오프라인 환경 지원** (Docker Compose + Ollama)  
+✅ **Windows exe로 1-클릭 배포** (일반 사용자도 더블클릭으로 실행)
 
 ---
 
@@ -65,6 +70,12 @@ Markdown → HTML → PDF → Word → JSON
 - 🔄 **버전 관리**: 이전 분석과 비교
 - 📥 **이력 조회**: 모든 분석 기록 저장
 
+### 🔟 **오프라인 환경 완전 지원** ⭐
+- 🚢 **Docker Compose**: 완전 자동화된 배포 (인터넷 불필요)
+- 🖥️ **Windows exe**: 일반 사용자도 더블클릭으로 실행
+- 🔒 **폐쇄망 환경**: 에어갭 환경도 지원 (docker-compose + Ollama)
+- 📦 **원클릭 배포**: setup 스크립트로 모든 라이브러리 자동 준비
+
 ### 6️⃣ **자동 품질 검사** ⭐ Phase 4
 - 🏆 **품질 점수**: 분석 결과를 95점 기준으로 자동 검사
 - 🔄 **자동 재시도**: 낮은 점수 에이전트는 feedback과 함께 자동 재실행 (최대 2회)
@@ -91,88 +102,121 @@ Markdown → HTML → PDF → Word → JSON
 
 ---
 
-## 🚀 빠른 시작
+## 🚀 빠른 시작 (3가지 방식)
 
-### 필수 요구사항
-- Python 3.9+
-- pip 또는 conda
+### 방식 1️⃣: 웹 서버 (개발자용, 권장) ⭐
 
-### 1. 저장소 클론 & 설정
+**필수 요구사항**: Python 3.9+
 
 ```bash
-# 프로젝트 디렉토리 이동
+# 1. 프로젝트 설정
 cd multi-agent
-
-# 가상 환경 생성
 python3 -m venv .venv
-source .venv/bin/activate  # macOS/Linux
-# 또는
-.venv\Scripts\activate  # Windows
-
-# 의존성 설치
+source .venv/bin/activate  # macOS/Linux / .venv\Scripts\activate (Windows)
 pip install -r requirements.txt
-```
 
-### 2. LLM 모드 선택
+# 2. LLM 모드 선택 (3가지 중 1개)
 
-**3가지 모드** (`.env` 또는 환경 변수로 설정):
-
-```bash
-# 모드 1: Mock (기본값, API 불필요) - 개발/테스트용
-# API 키 없어도 즉시 실행 가능
-LLM_MODE=mock
-
-# 모드 2: Local (무료, 인터넷 불필요)
-# Ollama 설치 필수: https://ollama.com
-# ollama pull llama3.3:70b
-LLM_MODE=local
-LLM_BASE_URL=http://localhost:11434/v1
-LLM_MODEL=llama3.3:70b
-
-# 모드 3: Claude API (유료, 가장 정확)
-LLM_MODE=claude
-ANTHROPIC_API_KEY=sk-ant-your-api-key-here
-```
-
-**.env 파일 예시** (권장):
-```env
-# LLM 모드 선택: mock / local / claude
-LLM_MODE=mock
-
-# Claude API 모드일 경우에만 필요
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Local 모드일 경우만 필요
-LLM_BASE_URL=http://localhost:11434/v1
-LLM_MODEL=llama3.3:70b
-```
-
-### 3. 실행
-
-#### CLI 모드 (터미널)
-```bash
-# Mock 모드 (API 키 불필요)
-LLM_MODE=mock python main.py --input "게시판에 파일 첨부 기능을 추가해주세요"
-
-# 파일 입력
-python main.py --input "./sample_requirements.txt"
-```
-
-#### 웹 서버 (브라우저) ⭐ 추천
-```bash
-# Mock 모드로 실행
+# 모드 A: Mock (기본, API 불필요, 즉시 시작)
 LLM_MODE=mock python app.py
 
-# 또는 Ollama 모드
-LLM_MODE=local python app.py
-
-# 또는 Claude API 모드
+# 모드 B: Claude API (가장 정확)
 LLM_MODE=claude ANTHROPIC_API_KEY=sk-ant-... python app.py
 
-# 브라우저에서 열기
+# 모드 C: Ollama (무료, 오프라인)
+# 사전 설정: ollama pull qwen2.5:7b
+LLM_MODE=local LLM_BASE_URL=http://localhost:11434/v1 python app.py
+
+# 3. 브라우저 열기
 # 메인 UI: http://localhost:8000
 # 관리자: http://localhost:8000/admin
 ```
+
+---
+
+### 방식 2️⃣: Docker Compose (팀/회사 배포) ⭐⭐
+
+**완전 오프라인 환경에서 실행 가능** (폐쇄망 환경 지원)
+
+#### 온라인 환경 (1회만 준비)
+```bash
+# 1. 오프라인 라이브러리 & 패키지 다운로드
+chmod +x scripts/setup-offline.sh
+./scripts/setup-offline.sh
+# → static/vendor/ (Tailwind, Font Awesome, marked.js)
+# → packages/ (pip 오프라인 패키지)
+# → .env.offline 복사
+
+# 2. Docker 이미지 빌드 (선택사항, 오프라인에서 자동 빌드)
+docker-compose build
+```
+
+#### 오프라인 환경 (언제든지 실행)
+```bash
+# Docker Desktop이 실행 중이어야 함
+docker-compose up -d
+
+# 서비스 확인
+docker-compose ps
+curl http://localhost:8000/api/health
+
+# 브라우저: http://localhost:8000
+# 첫 분석 시 Ollama가 qwen2.5:7b 자동 다운로드 (5-20분 대기)
+
+# 종료
+docker-compose down
+```
+
+📄 **상세 가이드**: `OFFLINE_DEPLOYMENT.md`
+
+---
+
+### 방식 3️⃣: Windows exe (최종 사용자용) ⭐⭐⭐
+
+**일반 사용자도 exe 더블클릭으로 실행 가능**
+
+#### exe 빌드 (온라인 환경, 1회만)
+```powershell
+# 1. PowerShell 실행 정책 설정 (1회)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# 2. exe 빌드
+powershell -ExecutionPolicy Bypass -File scripts\build-exe.ps1
+# → dist\AI분석서생성.exe 생성 (15-20MB)
+
+# 3. 배포 패키지 준비
+mkdir dist\AI분석서배포
+cp dist\AI분석서생성.exe dist\AI분석서배포\
+cp -r . dist\AI분석서배포\multi-agent\ -Exclude .git,build,dist
+
+# 4. ZIP 압축 후 배포
+Compress-Archive -Path .\AI분석서배포 -DestinationPath .\AI분석서배포.zip
+# → USB, 이메일, 클라우드로 전달
+```
+
+#### exe 사용 (오프라인 환경)
+```
+Windows PC:
+  C:\AI분석서\
+  ├── AI분석서생성.exe ← 더블클릭!
+  └── multi-agent\
+      ├── docker-compose.yml
+      ├── .env (LLM_MODE=local 설정됨)
+      └── ... (모든 필수 파일)
+
+자동 실행:
+  1. Docker 설치 확인
+  2. docker-compose 시작 (app + ollama)
+  3. 브라우저 자동 오픈 (http://localhost:8000)
+  4. 사용자는 텍스트/파일 입력 후 분석 시작
+  
+  ✅ 따로 설정할 게 없음!
+```
+
+📄 **상세 가이드**: 
+- `WINDOWS_EXE_GUIDE.md` - exe 설명서
+- `WINDOWS_DEPLOYMENT_ACTUAL.md` - 단계별 배포 과정
+- `SIMULATION_GUIDE.md` - 배포 시뮬레이션 체크리스트
 
 ---
 
@@ -467,11 +511,63 @@ multi-agent/
 │   ├── export_formats.py  # 내보내기 (HTML, PDF, Word, JSON)
 │   └── comparison.py      # 분석 비교
 │
+├── scripts/                # 배포 및 빌드 스크립트
+│   ├── run-app.py         # exe 진입점 (Docker 체크 → 자동 실행)
+│   ├── build-exe.sh       # Linux/macOS exe 빌드
+│   ├── build-exe.ps1      # Windows exe 빌드
+│   ├── setup-offline.sh   # Linux/macOS 오프라인 설정
+│   └── setup-offline.bat  # Windows 오프라인 설정
+│
 ├── static/                 # 웹 UI
 │   ├── index.html         # 메인 페이지
-│   └── admin.html         # 관리자 대시보드
+│   ├── admin.html         # 관리자 대시보드
+│   └── vendor/            # 오프라인 라이브러리
+│       ├── tailwind.min.css
+│       ├── marked.min.js
+│       └── fontawesome/
 │
-└── output/                # 생성된 분석 문서
+├── Dockerfile             # Docker 이미지 정의 (Python 3.9 + weasyprint)
+├── docker-compose.yml     # Docker Compose 오케스트레이션 (app + ollama)
+├── .env                   # 환경 변수 (온라인: Claude API)
+├── .env.offline          # 환경 변수 템플릿 (오프라인: Ollama)
+│
+├── output/                # 생성된 분석 문서
+└── logs/                  # 실행 로그
+```
+
+### 배포 아키텍처
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    온라인 환경 (1회 준비)                     │
+│  - setup-offline.sh: 라이브러리 다운로드 (vendor/)          │
+│  - setup-offline.sh: pip 패키지 다운로드 (packages/)        │
+│  - build-exe.ps1: exe 빌드 (PyInstaller)                   │
+│  → dist/AI분석서생성.exe (15-20MB)                          │
+│  → dist/AI분석서배포.zip (배포용 패키지)                     │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         │ USB/이메일/클라우드
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│               오프라인 환경 (Docker Compose)                  │
+│                                                              │
+│  C:\AI분석서\                                                │
+│  ├── AI분석서생성.exe (더블클릭)                              │
+│  └── multi-agent/                                           │
+│      ├── Dockerfile (Python 3.9 + weasyprint)              │
+│      ├── docker-compose.yml                                 │
+│      │   ├── service: app (port 8000)                      │
+│      │   │   └─ 분석 처리, 웹 UI 제공                       │
+│      │   └── service: ollama (port 11434)                  │
+│      │       └─ qwen2.5:7b 자동 다운로드 (첫 분석 시)        │
+│      ├── .env (LLM_MODE=local 설정)                        │
+│      ├── static/vendor/ (로컬 라이브러리)                   │
+│      └── packages/ (pip 오프라인 패키지)                    │
+│                                                              │
+│  ✅ 인터넷 불필요, Docker Desktop만 필요                    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### 단일 에이전트 테스트
@@ -487,6 +583,19 @@ result = agent.run({"input_document": "테스트 요구사항"})
 print(result)
 EOF
 ```
+
+---
+
+## 📚 배포 가이드 문서
+
+| 문서 | 대상 | 내용 |
+|-----|------|------|
+| **OFFLINE_DEPLOYMENT.md** | 관리자 | Docker Compose 기반 오프라인 배포 완벽 가이드 |
+| **WINDOWS_EXE_GUIDE.md** | 사용자 | Windows exe 사용 설명서 (설치, 실행, 문제 해결) |
+| **WINDOWS_DEPLOYMENT_ACTUAL.md** | 개발자 | Windows PC에서 exe 빌드 및 배포 단계별 가이드 |
+| **SIMULATION_GUIDE.md** | 개발자 | 배포 과정을 직접 테스트하는 시뮬레이션 체크리스트 |
+| **PROJECT_STRUCTURE.md** | 개발자 | 폴더 구조 상세 설명 및 파일 수정 가이드 |
+| **EXE_BUILD_EXPLAINED.md** | 개발자 | exe 빌드 개념 설명 (왜 온라인 1회일까?) |
 
 ---
 
@@ -522,22 +631,73 @@ curl -X POST http://localhost:8000/api/analyze \
 
 ## ❓ FAQ
 
-### Q: API 키를 발급받지 않았는데도 사용할 수 있나요?
+### 🚀 배포 방식
+**Q: 어떤 방식으로 배포하는 게 제일 좋나요?**
+**A**: 상황에 따라 다릅니다:
+- **개발자**: 웹 서버 (CLI 설정) - 유연한 LLM 모드 선택
+- **팀/회사**: Docker Compose - 자동화, 재현성, 팀 공유
+- **최종 사용자**: Windows exe - 더블클릭으로 즉시 실행
+
+### 🔒 오프라인 환경
+**Q: 인터넷이 없는 폐쇄망 환경에서도 사용할 수 있나요?**
+**A**: 네! 완전히 가능합니다:
+1. 온라인 PC에서 `setup-offline.sh` 실행 (1회만)
+2. 오프라인 PC로 파일 옮기기 (USB/이메일)
+3. `docker-compose up -d` 실행
+4. http://localhost:8000 접속하여 분석 시작
+
+자세한 가이드: `OFFLINE_DEPLOYMENT.md`
+
+### 🖥️ Windows exe
+**Q: exe 파일로 사용하려면 어떻게 하나요?**
+**A**: 3단계입니다:
+1. **온라인 PC에서** `scripts/build-exe.ps1` 실행 → exe 빌드 (1회)
+2. **배포 패키지 준비** (exe + multi-agent 폴더)
+3. **오프라인 PC에서** exe 더블클릭 → 자동 실행
+
+자세한 가이드: `WINDOWS_DEPLOYMENT_ACTUAL.md`
+
+### 📦 시뮬레이션
+**Q: 배포 과정을 먼저 시뮬레이션해볼 수 있나요?**
+**A**: 네! `SIMULATION_GUIDE.md`에서 전체 과정을 단계별로 확인하고 테스트할 수 있습니다.
+
+---
+
+### ⚡ 성능
+**Q: 얼마나 빠른가요?**
+**A**: 
+- **모의 모드** (Mock): 1-3초 (테스트용)
+- **Claude API**: 30-120초 (가장 정확)
+- **Ollama**: 15-60초 (무료, 오프라인)
+
+첫 분석은 Ollama 모델 다운로드로 5-20분 걸릴 수 있습니다.
+
+### 🔐 보안
+**Q: 보안이 괜찮나요?**
+**A**: 네, 완전히 안전합니다:
+- ✅ 모든 데이터는 로컬에 저장 (클라우드 업로드 없음)
+- ✅ API 키는 .env에서 안전하게 관리
+- ✅ 오프라인 모드에서는 인터넷 연결 불필요
+- ✅ Docker는 격리된 환경에서 실행
+
+### 👥 팀 협업
+**Q: 여러 팀이 함께 쓸 수 있나요?**
+**A**: 네! 여러 가지 방법이 있습니다:
+1. **Docker Compose**: 팀 서버에 배포 후 모두 http://localhost:8000 접속
+2. **exe**: 각 사용자가 독립적으로 실행
+3. **웹 서버**: 관리자 대시보드에서 모든 팀의 분석 이력 조회
+
+### 📝 저장 및 수정
+**Q: 저장된 분석을 수정할 수 있나요?**
+**A**: 현재는 읽기 전용이지만, 다음 기능을 계획 중입니다:
+- 버전 관리 (이전 분석과 비교)
+- 채팅 기반 요구사항 정제 (기본 기능은 Phase 5A에 있음)
+
+### 🖇️ API 키 없이 사용
+**Q: API 키 없이도 사용할 수 있나요?**
 **A**: 네! 2가지 방법이 있습니다:
-1. **모의 모드**: `python main.py --mock --input "..."`
-2. **Ollama (로컬 LLM)**: API 키 없이 오프라인 실행
-
-### Q: 얼마나 빠른가요?
-**A**: 모의 모드는 1-3초, Claude API는 30-120초, Ollama는 15-60초입니다.
-
-### Q: 보안이 괜찮나요?
-**A**: 네! 모든 데이터는 로컬에 저장되고, API 키는 .env에서 관리됩니다.
-
-### Q: 여러 팀이 함께 쓸 수 있나요?
-**A**: 네! 관리자 대시보드에서 모든 팀의 분석 이력을 볼 수 있습니다.
-
-### Q: 저장된 분석을 수정할 수 있나요?
-**A**: 현재는 읽기 전용이지만, 버전 관리 기능을 계획 중입니다.
+1. **모의 모드** (Mock): 개발/테스트용, 최고 속도 (1-3초)
+2. **Ollama** (로컬 LLM): API 키 불필요, 완전 무료, 오프라인 가능
 
 ---
 
