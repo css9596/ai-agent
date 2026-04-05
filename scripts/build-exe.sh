@@ -71,26 +71,61 @@ echo ""
 
 # 결과 확인
 echo "[4/4] 빌드 결과 확인..."
-if [ -f "dist/AI분석서생성.exe" ]; then
-    EXE_SIZE=$(du -h "dist/AI분석서생성.exe" | cut -f1)
+if [ -f "dist/AI분석서생성" ] || [ -f "dist/AI분석서생성.exe" ]; then
+    EXE_FILE=$(ls dist/AI분석서생성* 2>/dev/null | head -1)
+    EXE_SIZE=$(du -h "$EXE_FILE" | cut -f1)
+    echo "✓ exe 파일 생성 완료"
+    echo ""
+
+    # 필요한 파일 복사
+    echo "[5/5] 프로젝트 파일 복사 중..."
+
+    FILES_TO_COPY=(
+        "docker-compose.yml"
+        "Dockerfile"
+        ".env.offline"
+        "app.py"
+        "main.py"
+        "config.py"
+        "database.py"
+        "orchestrator.py"
+        "requirements.txt"
+    )
+
+    for file in "${FILES_TO_COPY[@]}"; do
+        if [ -f "$file" ]; then
+            cp "$file" dist/
+        fi
+    done
+
+    FOLDERS_TO_COPY=("scripts" "agents" "utils" "static")
+    for folder in "${FOLDERS_TO_COPY[@]}"; do
+        if [ -d "$folder" ]; then
+            cp -r "$folder" dist/
+        fi
+    done
+
+    echo "✓ 파일 복사 완료"
+    echo ""
+
     echo "✓ 빌드 성공!"
     echo ""
-    echo "생성된 파일:"
-    echo "  dist/AI분석서생성.exe ($EXE_SIZE)"
+    echo "생성된 배포 패키지:"
+    echo "  dist/ 폴더 (완전한 독립 실행형 애플리케이션)"
+    echo "  ├── AI분석서생성 ($EXE_SIZE)"
+    echo "  ├── docker-compose.yml"
+    echo "  ├── Dockerfile"
+    echo "  ├── .env.offline"
+    echo "  ├── app.py, main.py, config.py, etc."
+    echo "  ├── agents/"
+    echo "  ├── utils/"
+    echo "  ├── static/"
+    echo "  └── scripts/"
     echo ""
     echo "사용 방법:"
-    echo "  1. dist/AI분석서생성.exe를 다른 폴더로 복사"
-    echo "  2. multi-agent/ 폴더와 같은 위치에 배치"
-    echo "  3. exe를 더블클릭해서 실행"
+    echo "  1. 전체 dist/ 폴더를 다른 위치로 복사"
+    echo "  2. AI분석서생성을 더블클릭해서 실행"
     echo ""
-    echo "폴더 구조 예시:"
-    echo "  C:/User/App/"
-    echo "  ├── AI분석서생성.exe"
-    echo "  └── multi-agent/"
-    echo "      ├── docker-compose.yml"
-    echo "      ├── .env.offline"
-    echo "      ├── static/"
-    echo "      └── ..."
 else
     echo "[오류] exe 파일 생성 실패"
     exit 1

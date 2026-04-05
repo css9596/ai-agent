@@ -90,35 +90,60 @@ Write-Host ""
 $exePath = ".\dist\AIAnalyzer.exe"
 if (Test-Path $exePath) {
     $exeSize = [math]::Round((Get-Item $exePath).Length / 1MB, 1)
+
+    # Copy required files and folders to dist/
+    Write-Host "[5/5] Copying project files..." -ForegroundColor Blue
+
+    # Copy root-level files
+    $filesToCopy = @(
+        "docker-compose.yml",
+        "Dockerfile",
+        ".env.offline",
+        "app.py",
+        "main.py",
+        "config.py",
+        "database.py",
+        "orchestrator.py",
+        "requirements.txt"
+    )
+
+    foreach ($file in $filesToCopy) {
+        if (Test-Path $file) {
+            Copy-Item -Path $file -Destination ".\dist\" -Force
+        }
+    }
+
+    # Copy folders
+    $foldersToCopy = @("scripts", "agents", "utils", "static")
+    foreach ($folder in $foldersToCopy) {
+        if (Test-Path $folder) {
+            Copy-Item -Path $folder -Destination ".\dist\$folder" -Recurse -Force
+        }
+    }
+
+    Write-Host "OK: Project files copied" -ForegroundColor Green
+    Write-Host ""
+
     Write-Host ""
     Write-Host "=================================="
     Write-Host "BUILD SUCCESS!" -ForegroundColor Green
     Write-Host "=================================="
     Write-Host ""
-    Write-Host "Generated file:"
-    Write-Host "  dist\AIAnalyzer.exe ($exeSize MB)"
-    Write-Host ""
-    Write-Host "Usage:"
-    Write-Host "  1. Copy dist\AIAnalyzer.exe to deployment folder"
-    Write-Host "  2. Keep all project files in same location"
-    Write-Host "  3. Double-click exe to run"
-    Write-Host ""
-    Write-Host "Required folder structure:"
-    Write-Host "  C:\MyApp\"
-    Write-Host "  ├── AIAnalyzer.exe"
+    Write-Host "Generated deployment package:"
+    Write-Host "  dist\ folder (complete standalone application)"
+    Write-Host "  ├── AIAnalyzer.exe ($exeSize MB)"
     Write-Host "  ├── docker-compose.yml"
-    Write-Host "  ├── .env.offline"
     Write-Host "  ├── Dockerfile"
-    Write-Host "  ├── requirements.txt"
-    Write-Host "  ├── app.py"
-    Write-Host "  ├── main.py"
-    Write-Host "  ├── config.py"
-    Write-Host "  ├── database.py"
-    Write-Host "  ├── orchestrator.py"
-    Write-Host "  ├── scripts\"
+    Write-Host "  ├── .env.offline"
+    Write-Host "  ├── app.py, main.py, config.py, etc."
     Write-Host "  ├── agents\"
     Write-Host "  ├── utils\"
-    Write-Host "  └── static\"
+    Write-Host "  ├── static\"
+    Write-Host "  └── scripts\"
+    Write-Host ""
+    Write-Host "Usage:"
+    Write-Host "  1. Copy entire dist\ folder to target location"
+    Write-Host "  2. Double-click AIAnalyzer.exe to run"
     Write-Host ""
 } else {
     Write-Host ""
