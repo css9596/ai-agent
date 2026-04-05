@@ -1,5 +1,5 @@
-# Windows exe 빌드 스크립트 (PyInstaller)
-# 사용: powershell -ExecutionPolicy Bypass -File scripts\build-exe.ps1
+# Windows exe build script using PyInstaller
+# Usage: powershell -ExecutionPolicy Bypass -File scripts\build-exe.ps1
 
 param(
     [switch]$SkipCleanup = $false
@@ -13,7 +13,7 @@ Write-Host "Windows exe Build Script"
 Write-Host "=================================="
 Write-Host ""
 
-# Step 1: Python 확인
+# Step 1: Check Python
 Write-Host "[1/4] Checking Python..." -ForegroundColor Blue
 try {
     $pythonVersion = python --version 2>&1
@@ -25,7 +25,7 @@ try {
 }
 Write-Host ""
 
-# Step 2: PyInstaller 확인
+# Step 2: Check PyInstaller
 Write-Host "[2/4] Installing PyInstaller..." -ForegroundColor Blue
 try {
     python -c "import PyInstaller" 2>$null
@@ -37,7 +37,7 @@ try {
 }
 Write-Host ""
 
-# Step 3: 현재 폴더 설정
+# Step 3: Set working directory
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectDir = Split-Path -Parent $scriptDir
 Set-Location $projectDir
@@ -45,7 +45,7 @@ Set-Location $projectDir
 Write-Host "Working directory: $projectDir" -ForegroundColor Gray
 Write-Host ""
 
-# Step 4: 이전 빌드 정리
+# Step 4: Clean previous builds
 if (-not $SkipCleanup) {
     Write-Host "[3/4] Cleaning previous builds..." -ForegroundColor Blue
     Remove-Item -Path ".\build" -Recurse -ErrorAction SilentlyContinue | Out-Null
@@ -57,15 +57,15 @@ if (-not $SkipCleanup) {
 }
 Write-Host ""
 
-# Step 5: exe 빌드
-Write-Host "[4/4] Building exe file..." -ForegroundColor Blue
+# Step 5: Build exe
+Write-Host "[4/4] Building exe..." -ForegroundColor Blue
 Write-Host "  (This may take 2-5 minutes)" -ForegroundColor Gray
 Write-Host ""
 
-# PyInstaller args 준비
+# Prepare PyInstaller arguments
 $pyArgs = @(
     "--onefile",
-    "--name=AI분석서생성",
+    "--name=AIAnalyzer",
     "--distpath=.\dist",
     "--specpath=.\build",
     "--workpath=.\build",
@@ -73,13 +73,13 @@ $pyArgs = @(
     ".\scripts\run-app.py"
 )
 
-# PyInstaller 실행
+# Run PyInstaller
 & python -m PyInstaller $pyArgs
 
 Write-Host ""
 
-# 결과 확인
-$exePath = ".\dist\AI분석서생성.exe"
+# Check result
+$exePath = ".\dist\AIAnalyzer.exe"
 if (Test-Path $exePath) {
     $exeSize = [math]::Round((Get-Item $exePath).Length / 1MB, 1)
     Write-Host ""
@@ -88,20 +88,29 @@ if (Test-Path $exePath) {
     Write-Host "=================================="
     Write-Host ""
     Write-Host "Generated file:"
-    Write-Host "  dist\AI분석서생성.exe ($exeSize MB)"
+    Write-Host "  dist\AIAnalyzer.exe ($exeSize MB)"
     Write-Host ""
     Write-Host "Usage:"
-    Write-Host "  1. Copy dist\AI분석서생성.exe to deployment folder"
-    Write-Host "  2. Keep multi-agent\ folder in same location"
+    Write-Host "  1. Copy dist\AIAnalyzer.exe to deployment folder"
+    Write-Host "  2. Keep all project files in same location"
     Write-Host "  3. Double-click exe to run"
     Write-Host ""
-    Write-Host "Folder structure:"
+    Write-Host "Required folder structure:"
     Write-Host "  C:\MyApp\"
-    Write-Host "  ├── AI분석서생성.exe"
-    Write-Host "  └── multi-agent\"
-    Write-Host "      ├── docker-compose.yml"
-    Write-Host "      ├── .env.offline"
-    Write-Host "      └── ..."
+    Write-Host "  ├── AIAnalyzer.exe"
+    Write-Host "  ├── docker-compose.yml"
+    Write-Host "  ├── .env.offline"
+    Write-Host "  ├── Dockerfile"
+    Write-Host "  ├── requirements.txt"
+    Write-Host "  ├── app.py"
+    Write-Host "  ├── main.py"
+    Write-Host "  ├── config.py"
+    Write-Host "  ├── database.py"
+    Write-Host "  ├── orchestrator.py"
+    Write-Host "  ├── scripts\"
+    Write-Host "  ├── agents\"
+    Write-Host "  ├── utils\"
+    Write-Host "  └── static\"
     Write-Host ""
 } else {
     Write-Host ""
@@ -115,12 +124,12 @@ if (Test-Path $exePath) {
     exit 1
 }
 
-# exe 테스트 여부 묻기
+# Ask to test exe
 Write-Host ""
 $response = Read-Host "Test exe now? (Y/n)"
 if ($response -eq "Y" -or $response -eq "y" -or $response -eq "") {
     Write-Host ""
     Write-Host "Running exe..." -ForegroundColor Blue
     Write-Host ""
-    & ".\dist\AI분석서생성.exe"
+    & ".\dist\AIAnalyzer.exe"
 }
