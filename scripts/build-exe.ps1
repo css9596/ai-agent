@@ -124,6 +124,20 @@ if (Test-Path $exePath) {
         }
     }
 
+    # Copy all yml/yaml files
+    $ymlFiles = Get-ChildItem -Path $projectDir -Filter "*.yml" -ErrorAction SilentlyContinue
+    $ymlFiles += Get-ChildItem -Path $projectDir -Filter "*.yaml" -ErrorAction SilentlyContinue
+
+    foreach ($ymlFile in $ymlFiles) {
+        try {
+            Copy-Item -Path $ymlFile.FullName -Destination ".\dist\" -Force -ErrorAction Stop
+            Write-Host "  ✓ $($ymlFile.Name)" -ForegroundColor Gray
+        } catch {
+            $failedFiles += $ymlFile.Name
+            Write-Host "  ✗ $($ymlFile.Name) (failed)" -ForegroundColor Red
+        }
+    }
+
     # Copy folders
     $foldersToCopy = @("scripts", "agents", "utils", "static")
     foreach ($folder in $foldersToCopy) {
