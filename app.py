@@ -33,18 +33,53 @@ from utils.export_formats import export_to_html, export_to_pdf, export_to_docx, 
 from utils.comparison import compare_analyses, generate_comparison_report
 from orchestrator import Orchestrator
 from utils.claude_client import ClaudeClient
+from utils.llm_client import LLMClient
+from utils.project_extractor import ProjectExtractor
+from agents.source_comparator import SourceComparatorAgent
 
 # 환경 변수 로드
 load_dotenv()
 
 app = FastAPI(title="개발 분석서 자동 생성기", version="0.2.0")
 
-# LLM 클라이언트 초기화 (Anthropic Claude API 사용)
-client = ClaudeClient(
-    api_key=settings.ANTHROPIC_API_KEY,
-    model="claude-sonnet-4-5",
-    mock=settings.MOCK_MODE
-)
+# ============================================================================
+# LLM 클라이언트 초기화 (LLM_MODE에 따라 다른 클라이언트 사용)
+# ============================================================================
+# LLM_MODE 설정값 (3가지):
+#   "mock"   - API 없이 테스트용 하드코딩 응답 반환
+#               개발/테스트용. API 키 불필요.
+#   "local"  - Ollama 로컬 LLM 사용
+#               무료. 인터넷 불필요. Ollama 설치 필수.
+#   "claude" - Anthropic Claude API 사용
+#               유료. 가장 정확한 분석.
+#
+# .env 파일에서 변경:
+#   LLM_MODE=mock
+#   LLM_MODE=local
+#   LLM_MODE=claude
+
+if settings.LLM_MODE == "mock":
+    # Mock 모드: LLM 없이 하드코딩된 응답 반환
+    client = ClaudeClient(api_key="", mock=True)
+    print("🔧 Mock 모드 활성화 (API 없이 테스트)")
+
+elif settings.LLM_MODE == "local":
+    # Local 모드: Ollama LLM 사용
+    # 사전 준비: ollama pull llama3.3:70b (또는 설정한 모델명)
+    client = LLMClient(
+        base_url=settings.LLM_BASE_URL,
+        model=settings.LLM_MODEL,
+        api_key=settings.LLM_API_KEY
+    )
+    print(f"🏠 로컬 LLM 모드 활성화 ({settings.LLM_MODEL} @ {settings.LLM_BASE_URL})")
+
+else:  # "claude" (기본값)
+    # Claude 모드: Anthropic Claude API 사용
+    client = ClaudeClient(
+        api_key=settings.ANTHROPIC_API_KEY,
+        model="claude-sonnet-4-5"
+    )
+    print("🚀 Claude API 모드 활성화")
 
 # SSE 이벤트 큐 관리
 event_queues: Dict[str, asyncio.Queue] = {}
@@ -982,6 +1017,335 @@ async def generate_comparison_report_endpoint(analysis_id1: str, analysis_id2: s
             "error_code": "REPORT_GENERATION_FAILED",
             "message": f"리포트 생성 실패: {str(e)}"
         })
+
+
+# ============================================================================
+# Phase 6: 프로젝트 관리 & 소스 비교 엔드포인트
+# ============================================================================
+
+@app.post("/api/projects/upload")
+async def upload_project(
+    file: UploadFile = File(...),
+    name: str = Form(default=""),
+    description: str = Form(default=""),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """프로젝트 ZIP 업로드"""
+    try:
+        # 파일 검증
+        file_size = len(await file.read())
+        await file.seek(0)
+
+        if file_size > settings.MAX_PROJECT_SIZE_MB * 1024 * 1024:
+            raise HTTPException(status_code=400, detail={
+                "error_code": "PROJECT_TOO_LARGE",
+                "message": f"프로젝트가 너무 큽니다. 최대 {settings.MAX_PROJECT_SIZE_MB}MB까지 가능합니다.",
+                "size_mb": round(file_size / 1024 / 1024, 2),
+                "max_size_mb": settings.MAX_PROJECT_SIZE_MB
+            })
+
+        if not file.filename.endswith('.zip'):
+            raise HTTPException(status_code=400, detail={
+                "error_code": "INVALID_FILE_FORMAT",
+                "message": "ZIP 파일만 업로드 가능합니다.",
+                "file": file.filename
+            })
+
+        # 프로젝트 저장
+        project_id = str(uuid.uuid4())
+        project_name = name or Path(file.filename).stem
+        project_dir = Path(settings.PROJECT_DIR)
+        project_dir.mkdir(exist_ok=True)
+
+        # ZIP 저장
+        zip_path = project_dir / f"{project_id}.zip"
+        content = await file.read()
+        with open(zip_path, "wb") as f:
+            f.write(content)
+
+        # 소스 파싱 (백그라운드)
+        snapshot_path = project_dir / f"{project_id}_snapshot.json"
+        background_tasks.add_task(
+            parse_project_in_background,
+            str(zip_path),
+            str(snapshot_path),
+            project_id,
+            project_name
+        )
+
+        # DB 저장
+        db.create_project(
+            project_id=project_id,
+            name=project_name,
+            zip_file_path=str(zip_path),
+            snapshot_path=str(snapshot_path),
+            total_files=0,  # 나중에 업데이트됨
+            total_size=file_size,
+            description=description
+        )
+
+        logger.info("프로젝트 업로드", project_id=project_id, project_name=project_name)
+
+        return {
+            "project_id": project_id,
+            "name": project_name,
+            "status": "parsing",
+            "message": "프로젝트 파싱 중입니다..."
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("프로젝트 업로드 실패", error=str(e))
+        raise HTTPException(status_code=500, detail={
+            "error_code": "PROJECT_UPLOAD_FAILED",
+            "message": f"프로젝트 업로드 실패: {str(e)}"
+        })
+
+
+@app.get("/api/projects")
+async def get_projects(limit: int = 50, offset: int = 0):
+    """등록된 프로젝트 목록 조회"""
+    try:
+        projects = db.get_projects(limit=limit, offset=offset)
+        return {
+            "projects": projects,
+            "total": len(projects),
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        logger.error("프로젝트 목록 조회 실패", error=str(e))
+        raise HTTPException(status_code=500, detail={
+            "error_code": "GET_PROJECTS_FAILED",
+            "message": str(e)
+        })
+
+
+@app.get("/api/projects/{project_id}")
+async def get_project(project_id: str):
+    """프로젝트 상세 조회"""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail={
+                "error_code": "PROJECT_NOT_FOUND",
+                "message": f"프로젝트를 찾을 수 없습니다: {project_id}"
+            })
+
+        # 스냅샷 로드
+        snapshot_data = {}
+        if project.get("snapshot_path"):
+            try:
+                with open(project["snapshot_path"]) as f:
+                    snapshot_data = json.load(f)
+            except Exception:
+                pass
+
+        return {
+            "project": project,
+            "snapshot": snapshot_data
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("프로젝트 조회 실패", project_id=project_id, error=str(e))
+        raise HTTPException(status_code=500, detail={
+            "error_code": "GET_PROJECT_FAILED",
+            "message": str(e)
+        })
+
+
+@app.post("/api/compare")
+async def start_comparison(
+    project_id: str = Form(...),
+    analysis_id: str = Form(...),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """소스 코드와 분석 결과 비교 시작"""
+    try:
+        # 프로젝트 확인
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail={
+                "error_code": "PROJECT_NOT_FOUND",
+                "message": f"프로젝트를 찾을 수 없습니다"
+            })
+
+        # 분석 확인
+        analysis = db.get_analysis(analysis_id)
+        if not analysis:
+            raise HTTPException(status_code=404, detail={
+                "error_code": "ANALYSIS_NOT_FOUND",
+                "message": f"분석을 찾을 수 없습니다"
+            })
+
+        # 비교 ID 생성
+        comparison_id = f"comparison_{uuid.uuid4().hex[:12]}"
+
+        # DB 저장
+        db.create_comparison(comparison_id, project_id, analysis_id)
+
+        # 백그라운드에서 비교 실행
+        background_tasks.add_task(
+            run_comparison_in_background,
+            comparison_id,
+            project_id,
+            analysis_id,
+            project["snapshot_path"],
+            analysis_id
+        )
+
+        logger.info("소스 비교 시작", comparison_id=comparison_id, project_id=project_id, analysis_id=analysis_id)
+
+        return {
+            "comparison_id": comparison_id,
+            "status": "running",
+            "message": "비교 분석 중입니다..."
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("비교 시작 실패", error=str(e))
+        raise HTTPException(status_code=500, detail={
+            "error_code": "COMPARISON_FAILED",
+            "message": str(e)
+        })
+
+
+@app.get("/api/compare/{comparison_id}")
+async def get_comparison(comparison_id: str):
+    """비교 결과 조회"""
+    try:
+        comparison = db.get_comparison(comparison_id)
+        if not comparison:
+            raise HTTPException(status_code=404, detail={
+                "error_code": "COMPARISON_NOT_FOUND",
+                "message": "비교 결과를 찾을 수 없습니다"
+            })
+
+        result = {
+            "comparison_id": comparison_id,
+            "status": comparison["status"],
+            "created_at": comparison["created_at"]
+        }
+
+        # 결과 로드
+        if comparison["status"] == "completed" and comparison.get("result_path"):
+            try:
+                with open(comparison["result_path"]) as f:
+                    result["guide"] = json.load(f)
+            except Exception:
+                pass
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("비교 결과 조회 실패", comparison_id=comparison_id, error=str(e))
+        raise HTTPException(status_code=500, detail={
+            "error_code": "GET_COMPARISON_FAILED",
+            "message": str(e)
+        })
+
+
+# ============================================================================
+# 백그라운드 작업 함수
+# ============================================================================
+
+def parse_project_in_background(zip_path: str, snapshot_path: str, project_id: str, project_name: str) -> None:
+    """프로젝트 파싱 (백그라운드)"""
+    try:
+        snapshot = ProjectExtractor.extract_from_zip(zip_path, project_id, project_name)
+        if snapshot:
+            # JSON 저장
+            with open(snapshot_path, "w", encoding="utf-8") as f:
+                f.write(ProjectExtractor.snapshot_to_json(snapshot))
+
+            # DB 업데이트
+            with __import__("sqlite3").connect(settings.DATABASE_PATH) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE projects
+                    SET total_files = ?, snapshot_path = ?
+                    WHERE id = ?
+                """, (snapshot.total_files, snapshot_path, project_id))
+                conn.commit()
+
+            logger.info("프로젝트 파싱 완료", project_id=project_id, total_files=snapshot.total_files)
+        else:
+            logger.error("프로젝트 파싱 실패", project_id=project_id)
+
+    except Exception as e:
+        logger.error("프로젝트 파싱 오류", project_id=project_id, error=str(e))
+
+
+def run_comparison_in_background(
+    comparison_id: str,
+    project_id: str,
+    analysis_id: str,
+    snapshot_path: str,
+    analysis_id_: str
+) -> None:
+    """소스 비교 실행 (백그라운드)"""
+    try:
+        import sqlite3
+
+        # 컨텍스트 로드
+        if analysis_id_ not in job_contexts:
+            logger.warning("컨텍스트 없음", analysis_id=analysis_id_)
+            return
+
+        context = job_contexts[analysis_id_]
+
+        # 스냅샷 로드
+        with open(snapshot_path) as f:
+            snapshot_data = json.load(f)
+
+        # 간단한 스냅샷 객체 생성
+        from utils.project_extractor import ProjectSnapshot, SourceFile
+        files = [
+            SourceFile(
+                path=f["path"],
+                relative_path=f["relative_path"],
+                size=f["size"],
+                language=f["language"],
+                methods=f.get("methods", [])
+            )
+            for f in snapshot_data.get("files", [])
+        ]
+        snapshot = ProjectSnapshot(
+            project_id=snapshot_data["project_id"],
+            name=snapshot_data["name"],
+            files=files,
+            file_tree=snapshot_data.get("file_tree", {}),
+            total_files=snapshot_data["total_files"],
+            total_size=snapshot_data["total_size"],
+            supported_files=snapshot_data["supported_files"]
+        )
+
+        # 비교 실행
+        comparator = SourceComparatorAgent(client)
+        result_context = comparator.run(context, snapshot)
+        comparison_result = result_context.get("source_comparator", {})
+
+        # 결과 저장
+        result_path = Path(settings.OUTPUT_DIR) / f"comparison_{comparison_id}.json"
+        result_path.parent.mkdir(exist_ok=True)
+        with open(result_path, "w", encoding="utf-8") as f:
+            json.dump(comparison_result, f, ensure_ascii=False, indent=2)
+
+        # DB 업데이트
+        db.update_comparison_result(comparison_id, "completed", str(result_path))
+
+        logger.info("소스 비교 완료", comparison_id=comparison_id)
+
+    except Exception as e:
+        logger.error("소스 비교 오류", comparison_id=comparison_id, error=str(e))
+        db.update_comparison_result(comparison_id, "failed")
 
 
 # ============================================================================

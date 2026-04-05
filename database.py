@@ -49,6 +49,34 @@ class Database:
             except sqlite3.OperationalError:
                 pass
 
+            # Phase 6: 프로젝트 관리 테이블
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS projects (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    zip_file_path TEXT,
+                    snapshot_path TEXT,
+                    total_files INTEGER,
+                    total_size INTEGER,
+                    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Phase 6: 소스 비교 결과 테이블
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS comparisons (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    analysis_id TEXT NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    result_path TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (project_id) REFERENCES projects(id),
+                    FOREIGN KEY (analysis_id) REFERENCES analyses(id)
+                )
+            """)
+
             # 인덱스
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_job_id
@@ -61,6 +89,10 @@ class Database:
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_created_at
                 ON analyses(created_at)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_project_id
+                ON comparisons(project_id)
             """)
 
             conn.commit()
@@ -276,6 +308,106 @@ class Database:
                 except json.JSONDecodeError:
                     return []
             return []
+
+    # ===================================================================
+    # Phase 6: 프로젝트 관리
+    # ===================================================================
+
+    def create_project(
+        self,
+        project_id: str,
+        name: str,
+        zip_file_path: str,
+        snapshot_path: str,
+        total_files: int,
+        total_size: int,
+        description: Optional[str] = None
+    ) -> None:
+        """프로젝트 레코드 생성"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO projects
+                (id, name, description, zip_file_path, snapshot_path, total_files, total_size)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (project_id, name, description, zip_file_path, snapshot_path, total_files, total_size))
+            conn.commit()
+
+    def get_projects(self, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+        """프로젝트 목록 조회"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM projects
+                ORDER BY uploaded_at DESC
+                LIMIT ? OFFSET ?
+            """, (limit, offset))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
+        """프로젝트 상세 조회"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+            result = cursor.fetchone()
+            return dict(result) if result else None
+
+    def delete_project(self, project_id: str) -> None:
+        """프로젝트 삭제"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+            conn.commit()
+
+    def create_comparison(
+        self,
+        comparison_id: str,
+        project_id: str,
+        analysis_id: str
+    ) -> None:
+        """비교 작업 레코드 생성"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO comparisons
+                (id, project_id, analysis_id, status)
+                VALUES (?, ?, ?, 'pending')
+            """, (comparison_id, project_id, analysis_id))
+            conn.commit()
+
+    def update_comparison_result(
+        self,
+        comparison_id: str,
+        status: str,
+        result_path: Optional[str] = None
+    ) -> None:
+        """비교 결과 업데이트"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            if result_path:
+                cursor.execute("""
+                    UPDATE comparisons
+                    SET status = ?, result_path = ?
+                    WHERE id = ?
+                """, (status, result_path, comparison_id))
+            else:
+                cursor.execute("""
+                    UPDATE comparisons
+                    SET status = ?
+                    WHERE id = ?
+                """, (status, comparison_id))
+            conn.commit()
+
+    def get_comparison(self, comparison_id: str) -> Optional[Dict[str, Any]]:
+        """비교 결과 조회"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM comparisons WHERE id = ?", (comparison_id,))
+            result = cursor.fetchone()
+            return dict(result) if result else None
 
 
 # 전역 DB 인스턴스
