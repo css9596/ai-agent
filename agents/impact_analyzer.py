@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from utils.claude_client import ClaudeClient
 from utils.context_builder import KOREAN_INSTRUCTION
@@ -11,13 +11,20 @@ class ImpactAnalyzerAgent:
     def __init__(self, client: ClaudeClient) -> None:
         self.client = client
 
-    def run(self, context: Dict[str, Any], feedback: str = "") -> Dict[str, Any]:
+    def run(self, context: Dict[str, Any], feedback: str = "", examples: Optional[List[Dict]] = None) -> Dict[str, Any]:
         print("[ImpactAnalyzer] 분석 중...")
         planner_data = context.get("planner", {})
         developer_data = context.get("developer", {})
         feedback_section = (
             f"\n\n[이전 분석 피드백 - 반드시 반영하세요]\n{feedback}" if feedback else ""
         )
+        examples_section = ""
+        if examples:
+            examples_section = "\n\n[참고 예시 - 아래 예시와 동일한 수준의 품질로 작성]\n"
+            for i, ex in enumerate(examples[:2], 1):
+                title = ex.get("title", f"예시 {i}")
+                output_preview = ex.get("output_markdown", "")[:400]
+                examples_section += f"\n예시 {i} ({title}):\n{output_preview}...\n"
         prompt = (
             f"{KOREAN_INSTRUCTION}\n\n"
             "기획/개발 분석 결과를 바탕으로 Java/JSP/jQuery/MyBatis 프로젝트의 영향도를 분석하세요.\n"
@@ -39,6 +46,7 @@ class ImpactAnalyzerAgent:
             "}\n\n"
             f"[기획 결과]\n{json.dumps(planner_data, ensure_ascii=False)}\n\n"
             f"[개발 분석 결과]\n{json.dumps(developer_data, ensure_ascii=False)}"
+            f"{examples_section}"
             f"{feedback_section}"
         )
         result = self.client.request_json(
