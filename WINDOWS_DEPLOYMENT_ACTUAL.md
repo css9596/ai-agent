@@ -80,13 +80,12 @@ Docker version 24.0.0 이상
 # 3. 폴더 구조:
 #    C:\AI분석서\
 #    ├── AI분석서생성.exe (이미 macOS 형식이지만, 아래서 다시 빌드)
-#    └── multi-agent\
-#        ├── docker-compose.yml
-#        ├── scripts\
-#        └── ...
+#    ├── docker-compose.yml
+#    ├── scripts\
+#    └── ...
 
 # PowerShell에서:
-cd C:\AI분석서\multi-agent
+cd C:\AI분석서
 ```
 
 **방법 B: Git으로 클론하기 (Git 설치 필수)**
@@ -97,7 +96,7 @@ cd C:\Projects
 # 프로젝트 복제
 git clone https://github.com/css9596/ai-agent.git
 
-cd ai-agent\multi-agent
+cd ai-agent
 ```
 
 ### 확인: 필수 파일이 있는지 체크
@@ -106,7 +105,7 @@ cd ai-agent\multi-agent
 ```powershell
 # 1. 현재 위치 확인
 pwd
-# 예상: C:\AI분석서\multi-agent (또는 git clone한 경로)
+# 예상: C:\AI분석서 (또는 C:\Projects\ai-agent)
 
 # 2. 필수 파일 확인 (Windows PowerShell 호환 명령어)
 ls -Name | Select-String -Pattern "docker-compose|build-exe|requirements"
@@ -123,7 +122,7 @@ requirements.txt
 ```powershell
 # 주요 폴더/파일 확인
 ls -Directory
-# 예상: agents  config  scripts  static  utils  ...
+# 예상: agents  scripts  static  utils  ...
 
 ls -Name | Select-String "\.yml|\.txt|\.py" | head -10
 # 예상: app.py, config.py, docker-compose.yml, requirements.txt, ...
@@ -148,9 +147,9 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 **PowerShell에서 실행:**
 
 ```powershell
-# 1. multi-agent 폴더로 이동 (현재 위치 확인 후)
+# 1. 프로젝트 폴더로 이동 (현재 위치 확인 후)
 pwd
-# 결과가 C:\AI분석서\multi-agent 또는 C:\Projects\multi-agent 여야 함
+# 결과가 C:\AI분석서 또는 C:\Projects\ai-agent 여야 함
 
 # 2. 빌드 스크립트 실행
 powershell -ExecutionPolicy Bypass -File scripts\build-exe.ps1
@@ -158,7 +157,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build-exe.ps1
 
 **또는 한 줄로 실행:**
 ```powershell
-cd C:\AI분석서\multi-agent; powershell -ExecutionPolicy Bypass -File scripts\build-exe.ps1
+cd C:\AI분석서; powershell -ExecutionPolicy Bypass -File scripts\build-exe.ps1
 ```
 
 **실행 과정:**
@@ -205,7 +204,7 @@ Test-Path .\dist\AI분석서생성.exe
 **예상 결과:**
 ```
 ls 결과:
-    Directory: C:\AI분석서\multi-agent\dist
+    Directory: C:\AI분석서\dist
 Mode                 LastWriteTime         Length Name
 ----                 ---------------         ------ ----
 -a---         2026-04-05    12:51       20000000 AI분석서생성.exe
@@ -234,8 +233,8 @@ mkdir dist\AI분석서배포
 # 1. exe 파일 복사
 Copy-Item .\dist\AI분석서생성.exe .\dist\AI분석서배포\
 
-# 2. 전체 multi-agent 폴더 복사 (필요없는 폴더는 나중에 삭제 가능)
-Copy-Item . .\dist\AI분석서배포\multi-agent\ -Recurse -Exclude .git, .venv, __pycache__, .pytest_cache, *.pyc, build, htmlcov
+# 2. 전체 프로젝트 폴더 복사 (필요없는 폴더는 나중에 삭제 가능)
+Copy-Item . .\dist\AI분석서배포\ -Recurse -Exclude .git, .venv, __pycache__, .pytest_cache, *.pyc, build, htmlcov, dist
 
 Write-Host "✓ 복사 완료"
 ```
@@ -249,13 +248,13 @@ Copy-Item .\dist\AI분석서생성.exe .\dist\AI분석서배포\
 $files = @('docker-compose.yml', '.env.offline', 'Dockerfile', 'requirements.txt', 
            'config.py', 'database.py', 'orchestrator.py', 'app.py', 'main.py')
 foreach ($file in $files) {
-    Copy-Item $file .\dist\AI분석서배포\multi-agent\ -ErrorAction SilentlyContinue
+    Copy-Item $file .\dist\AI분석서배포\ -ErrorAction SilentlyContinue
 }
 
 # 3. 필수 폴더 복사
 $folders = @('scripts', 'agents', 'utils', 'static')
 foreach ($folder in $folders) {
-    Copy-Item $folder .\dist\AI분석서배포\multi-agent\ -Recurse -ErrorAction SilentlyContinue
+    Copy-Item $folder .\dist\AI분석서배포\ -Recurse -ErrorAction SilentlyContinue
 }
 
 Write-Host "✓ 복사 완료"
@@ -268,7 +267,7 @@ Write-Host "✓ 복사 완료"
 ls -lh dist\AI분석서배포\
 
 # 2. 폴더 내용 확인
-ls -lh dist\AI분석서배포\multi-agent\ | head -10
+ls -lh dist\AI분석서배포\ | head -15
 
 # 3. 전체 폴더 크기 확인 (GB 단위)
 $size = (Get-ChildItem .\dist\AI분석서배포\ -Recurse | Measure-Object -Property Length -Sum).Sum / 1GB
@@ -281,17 +280,13 @@ ls 결과:
 Mode                 LastWriteTime         Length Name
 ----                 ---------------         ------ ----
 -a---         2026-04-05    12:51       20000000 AI분석서생성.exe
-d----         2026-04-05    12:52              . multi-agent
-
-multi-agent 폴더 내용:
-Mode                 LastWriteTime         Length Name
-----                 ---------------         ------ ----
 d----         2026-04-05    12:52              agents
 d----         2026-04-05    12:52              scripts
 d----         2026-04-05    12:52              static
 d----         2026-04-05    12:52              utils
 -a---         2026-04-05    12:51           2000 app.py
 -a---         2026-04-05    12:51           1000 config.py
+-a---         2026-04-05    12:51           5000 docker-compose.yml
 
 전체 크기: 약 3-4 GB
 ```
@@ -318,18 +313,18 @@ mkdir C:\Test-AI분석서
 cd C:\Test-AI분석서
 
 # 2. 배포 파일 복사 (본인의 실제 경로로 변경)
-# 예시: C:\AI분석서\multi-agent\dist\AI분석서배포\ 또는
-#       C:\Projects\multi-agent\dist\AI분석서배포\
+# 예시: C:\AI분석서\dist\AI분석서배포\ 또는
+#       C:\Projects\ai-agent\dist\AI분석서배포\
 
 # PowerShell에서 (경로를 실제 경로로 변경하세요):
-Copy-Item "C:\AI분석서\multi-agent\dist\AI분석서배포\*" .\ -Recurse
+Copy-Item "C:\AI분석서\dist\AI분석서배포\*" .\ -Recurse
 
 # 또는
-Copy-Item "C:\Projects\multi-agent\dist\AI분석서배포\*" .\ -Recurse
+Copy-Item "C:\Projects\ai-agent\dist\AI분석서배포\*" .\ -Recurse
 
 # 3. 파일 확인
 ls -Name
-# 예상: AI분석서생성.exe, multi-agent
+# 예상: AI분석서생성.exe, docker-compose.yml, app.py, agents, scripts, static, utils
 ```
 
 ### 4-2. exe 파일 실행
