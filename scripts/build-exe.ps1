@@ -7,6 +7,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Windows PowerShell UTF-8 인코딩 설정
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 Write-Host ""
 Write-Host "=================================="
 Write-Host "Windows exe Build Script"
@@ -121,20 +124,20 @@ if (Test-Path $exePath) {
 
                 # Try using .NET File.Copy first
                 [System.IO.File]::Copy($fullPath, $destPath, $true)
-                Write-Host "  ✓ $file" -ForegroundColor Gray
+                Write-Host "  [OK] $file" -ForegroundColor Gray
             } catch {
                 # Fallback to Copy-Item if .NET fails
                 try {
                     Copy-Item -Path $fullPath -Destination $destPath -Force -ErrorAction Stop
-                    Write-Host "  ✓ $file" -ForegroundColor Gray
+                    Write-Host "  [OK] $file" -ForegroundColor Gray
                 } catch {
                     $failedFiles += $file
-                    Write-Host "  ✗ $file (failed: $($_.Exception.Message))" -ForegroundColor Red
+                    Write-Host "  [FAIL] $file (failed: $($_.Exception.Message))" -ForegroundColor Red
                 }
             }
         } else {
             $failedFiles += $file
-            Write-Host "  ✗ $file (not found at $fullPath)" -ForegroundColor Red
+            Write-Host "  [FAIL] $file (not found at $fullPath)" -ForegroundColor Red
         }
     }
 
@@ -159,15 +162,15 @@ if (Test-Path $exePath) {
 
                 # Try using .NET File.Copy first
                 [System.IO.File]::Copy($ymlFile.FullName, $destPath, $true)
-                Write-Host "  ✓ $($ymlFile.Name)" -ForegroundColor Gray
+                Write-Host "  [OK] $($ymlFile.Name)" -ForegroundColor Gray
             } catch {
                 # Fallback to Copy-Item if .NET fails
                 try {
                     Copy-Item -Path $ymlFile.FullName -Destination $destPath -Force -ErrorAction Stop
-                    Write-Host "  ✓ $($ymlFile.Name)" -ForegroundColor Gray
+                    Write-Host "  [OK] $($ymlFile.Name)" -ForegroundColor Gray
                 } catch {
                     $failedFiles += $ymlFile.Name
-                    Write-Host "  ✗ $($ymlFile.Name) (failed: $($_.Exception.Message))" -ForegroundColor Red
+                    Write-Host "  [FAIL] $($ymlFile.Name) (failed: $($_.Exception.Message))" -ForegroundColor Red
                 }
             }
         }
@@ -187,14 +190,14 @@ if (Test-Path $exePath) {
                 }
 
                 Copy-Item -Path $fullPath -Destination $destFolder -Recurse -Force -ErrorAction Stop
-                Write-Host "  ✓ $folder/" -ForegroundColor Gray
+                Write-Host "  [OK] $folder/" -ForegroundColor Gray
             } catch {
                 $failedFiles += $folder
-                Write-Host "  ✗ $folder/ (failed: $($_.Exception.Message))" -ForegroundColor Red
+                Write-Host "  [FAIL] $folder/ (failed: $($_.Exception.Message))" -ForegroundColor Red
             }
         } else {
             $failedFiles += $folder
-            Write-Host "  ✗ $folder/ (not found at $fullPath)" -ForegroundColor Red
+            Write-Host "  [FAIL] $folder/ (not found at $fullPath)" -ForegroundColor Red
         }
     }
 
@@ -212,15 +215,15 @@ if (Test-Path $exePath) {
     Write-Host ""
     Write-Host "Generated deployment package:"
     Write-Host "  dist\ folder (complete standalone application)"
-    Write-Host "  ├── AIAnalyzer.exe ($exeSize MB)"
-    Write-Host "  ├── docker-compose.yml"
-    Write-Host "  ├── Dockerfile"
-    Write-Host "  ├── .env.offline"
-    Write-Host "  ├── app.py, main.py, config.py, etc."
-    Write-Host "  ├── agents\"
-    Write-Host "  ├── utils\"
-    Write-Host "  ├── static\"
-    Write-Host "  └── scripts\"
+    Write-Host "  - AIAnalyzer.exe ($exeSize MB)"
+    Write-Host "  - docker-compose.yml"
+    Write-Host "  - Dockerfile"
+    Write-Host "  - .env.offline"
+    Write-Host "  - app.py, main.py, config.py, etc."
+    Write-Host "  - agents\"
+    Write-Host "  - utils\"
+    Write-Host "  - static\"
+    Write-Host "  - scripts\"
     Write-Host ""
     Write-Host "Usage:"
     Write-Host "  1. Copy entire dist\ folder to target location"

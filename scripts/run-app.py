@@ -17,6 +17,10 @@ import time
 import webbrowser
 from pathlib import Path
 
+# Windows UTF-8 콘솔 활성화
+if sys.platform == "win32":
+    os.system("chcp 65001 > nul")
+
 # 색상 정의 (Windows 10+ ANSI 지원)
 class Colors:
     BLUE = '\033[94m'
@@ -42,15 +46,15 @@ def print_step(step, total, msg):
 
 def print_success(msg):
     """성공 메시지"""
-    print(f"{Colors.GREEN}✓ {msg}{Colors.END}")
+    print(f"{Colors.GREEN}[OK] {msg}{Colors.END}")
 
 def print_error(msg):
     """오류 메시지"""
-    print(f"{Colors.RED}✗ {msg}{Colors.END}")
+    print(f"{Colors.RED}[ERROR] {msg}{Colors.END}")
 
 def print_warning(msg):
     """경고 메시지"""
-    print(f"{Colors.YELLOW}⚠ {msg}{Colors.END}")
+    print(f"{Colors.YELLOW}[WARN] {msg}{Colors.END}")
 
 def check_docker():
     """Docker 설치 확인"""
@@ -65,15 +69,39 @@ def check_docker():
             version = result.stdout.strip()
             print_success(f"Docker 설치 확인: {version}")
             return True
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
+    except FileNotFoundError:
+        # Docker가 설치되지 않음
+        print_error("Docker Desktop이 설치되지 않았습니다.")
+        print(f"\n{Colors.YELLOW}설치 방법:{Colors.END}")
+        print("\n1) Docker Desktop 다운로드 (무료):")
+        print("   https://www.docker.com/products/docker-desktop")
+        print("\n2) 설치 파일 실행:")
+        print("   - 다운로드 완료 후 설치 파일 더블클릭")
+        print("   - 설치 마법사 따라가기 (기본 설정으로 OK)")
+        print("   - 설치 완료 후 컴퓨터 재시작 (권장)")
+        print("\n3) Docker Desktop 시작:")
+        print("   - 설치 후 시작 메뉴에서 'Docker Desktop' 검색")
+        print("   - Docker Desktop 아이콘이 초록색으로 변할 때까지 대기 (약 30초)")
+        print("   - 시스템 트레이(화면 우측 아래)에 Docker 아이콘 표시 확인")
+        print("\n4) 이 프로그램 다시 실행")
+        return False
+    except subprocess.TimeoutExpired:
+        # Docker가 설치되어 있지만 응답 없음 (실행 중이 아닐 가능성)
+        print_error("Docker Desktop이 응답하지 않습니다 (실행 중이 아닐 수 있음).")
+        print(f"\n{Colors.YELLOW}해결 방법:{Colors.END}")
+        print("\n1) Docker Desktop 시작:")
+        print("   - 시스템 트레이(화면 우측 아래)에서 Docker 아이콘 찾기")
+        print("   - 없으면 시작 메뉴에서 'Docker Desktop' 검색해 실행")
+        print("   - Docker 아이콘이 초록색으로 변할 때까지 대기 (약 30초)")
+        print("\n2) 이 프로그램 다시 실행")
+        print("\n[팁] Docker Desktop을 항상 실행해두면 다음부터 더 빠릅니다.")
+        return False
 
-    print_error("Docker Desktop이 설치되지 않았거나 실행 중이 아닙니다.")
+    print_error("Docker Desktop과 통신할 수 없습니다.")
     print(f"\n{Colors.YELLOW}해결 방법:{Colors.END}")
-    print("1. Docker Desktop 다운로드:")
-    print("   https://www.docker.com/products/docker-desktop")
-    print("\n2. Docker Desktop 설치 및 실행")
-    print("3. 이 프로그램 다시 시작")
+    print("1. Docker Desktop이 시작되었는지 확인")
+    print("2. Windows: 시스템 트레이에서 Docker 아이콘 확인 (초록색)")
+    print("3. 이 프로그램 다시 실행")
     return False
 
 def check_docker_compose():

@@ -8,6 +8,10 @@
 
 set -e
 
+# UTF-8 인코딩 설정
+export LANG=ko_KR.UTF-8
+export LC_ALL=ko_KR.UTF-8
+
 echo "======================================"
 echo "Windows exe 빌드 스크립트"
 echo "======================================"
@@ -21,16 +25,16 @@ if ! command -v python3 &> /dev/null && ! command -v python &> /dev/null; then
 fi
 
 PYTHON=${PYTHON:-python3}
-echo "✓ Python 확인: $($PYTHON --version)"
+echo "[OK] Python 확인: $($PYTHON --version)"
 echo ""
 
 # PyInstaller 설치 확인
 echo "[1/4] PyInstaller 확인..."
 if ! $PYTHON -c "import PyInstaller" 2>/dev/null; then
-    echo "  → PyInstaller 설치 중..."
+    echo "  -> PyInstaller 설치 중..."
     $PYTHON -m pip install pyinstaller --quiet
 fi
-echo "✓ PyInstaller 설치 완료"
+echo "[OK] PyInstaller 설치 완료"
 echo ""
 
 # 현재 스크립트 디렉토리 기준
@@ -42,7 +46,7 @@ cd "$PROJECT_DIR"
 # 이전 빌드 정리
 echo "[2/4] 이전 빌드 정리..."
 rm -rf build/ dist/ run_app.spec 2>/dev/null || true
-echo "✓ 정리 완료"
+echo "[OK] 정리 완료"
 echo ""
 
 # PyInstaller 빌드
@@ -66,7 +70,7 @@ $PYTHON -m PyInstaller \
     --console \
     scripts/run-app.py
 
-echo "✓ exe 파일 생성 완료"
+echo "[OK] exe 파일 생성 완료"
 echo ""
 
 # 결과 확인
@@ -74,7 +78,7 @@ echo "[4/4] 빌드 결과 확인..."
 if [ -f "dist/AI분석서생성" ] || [ -f "dist/AI분석서생성.exe" ]; then
     EXE_FILE=$(ls dist/AI분석서생성* 2>/dev/null | head -1)
     EXE_SIZE=$(du -h "$EXE_FILE" | cut -f1)
-    echo "✓ exe 파일 생성 완료"
+    echo "[OK] exe 파일 생성 완료"
     echo ""
 
     # 필요한 파일 복사
@@ -99,14 +103,14 @@ if [ -f "dist/AI분석서생성" ] || [ -f "dist/AI분석서생성.exe" ]; then
             rm -f "dist/$file" 2>/dev/null
 
             if cp "$file" "dist/$file" 2>/dev/null; then
-                echo "  ✓ $file"
+                echo "  [OK] $file"
             else
                 FAILED_FILES+=("$file")
-                echo "  ✗ $file (복사 실패)"
+                echo "  [FAIL] $file (복사 실패)"
             fi
         else
             FAILED_FILES+=("$file")
-            echo "  ✗ $file (파일 없음)"
+            echo "  [FAIL] $file (파일 없음)"
         fi
     done
 
@@ -123,10 +127,10 @@ if [ -f "dist/AI분석서생성" ] || [ -f "dist/AI분석서생성.exe" ]; then
             rm -f "dist/$ymlFileName" 2>/dev/null
 
             if cp "$ymlFile" "dist/$ymlFileName" 2>/dev/null; then
-                echo "  ✓ $ymlFileName"
+                echo "  [OK] $ymlFileName"
             else
                 FAILED_FILES+=("$ymlFileName")
-                echo "  ✗ $ymlFileName (복사 실패)"
+                echo "  [FAIL] $ymlFileName (복사 실패)"
             fi
         fi
     done
@@ -142,37 +146,37 @@ if [ -f "dist/AI분석서생성" ] || [ -f "dist/AI분석서생성.exe" ]; then
             rm -rf "dist/$folder" 2>/dev/null
 
             if cp -r "$folder" "dist/$folder" 2>/dev/null; then
-                echo "  ✓ $folder/"
+                echo "  [OK] $folder/"
             else
                 FAILED_FILES+=("$folder")
-                echo "  ✗ $folder/ (복사 실패)"
+                echo "  [FAIL] $folder/ (복사 실패)"
             fi
         else
             FAILED_FILES+=("$folder")
-            echo "  ✗ $folder/ (폴더 없음)"
+            echo "  [FAIL] $folder/ (폴더 없음)"
         fi
     done
 
     if [ ${#FAILED_FILES[@]} -gt 0 ]; then
-        echo "⚠ 경고: 일부 파일 복사 실패 - ${FAILED_FILES[*]}" >&2
+        echo "[WARN] 경고: 일부 파일 복사 실패 - ${FAILED_FILES[*]}" >&2
     fi
 
-    echo "✓ 파일 복사 완료"
+    echo "[OK] 파일 복사 완료"
     echo ""
 
-    echo "✓ 빌드 성공!"
+    echo "[OK] 빌드 성공!"
     echo ""
     echo "생성된 배포 패키지:"
     echo "  dist/ 폴더 (완전한 독립 실행형 애플리케이션)"
-    echo "  ├── AI분석서생성 ($EXE_SIZE)"
-    echo "  ├── docker-compose.yml"
-    echo "  ├── Dockerfile"
-    echo "  ├── .env.offline"
-    echo "  ├── app.py, main.py, config.py, etc."
-    echo "  ├── agents/"
-    echo "  ├── utils/"
-    echo "  ├── static/"
-    echo "  └── scripts/"
+    echo "  - AI분석서생성 ($EXE_SIZE)"
+    echo "  - docker-compose.yml"
+    echo "  - Dockerfile"
+    echo "  - .env.offline"
+    echo "  - app.py, main.py, config.py, etc."
+    echo "  - agents/"
+    echo "  - utils/"
+    echo "  - static/"
+    echo "  - scripts/"
     echo ""
     echo "사용 방법:"
     echo "  1. 전체 dist/ 폴더를 다른 위치로 복사"
@@ -185,6 +189,6 @@ fi
 
 echo ""
 echo "======================================"
-echo "✓ 빌드 완료!"
+echo "[OK] 빌드 완료!"
 echo "======================================"
 echo ""
