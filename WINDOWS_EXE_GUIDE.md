@@ -255,18 +255,62 @@ exe를 다시 실행하면:
 
 ## 문제 해결
 
-### 문제 1: "Docker가 실행 중이 아닙니다"
+### 문제 1: "[ERROR] Docker Desktop이 설치되지 않았습니다"
 
 **증상:**
 ```
-✗ Docker Desktop이 설치되지 않았거나 실행 중이 아닙니다.
+[ERROR] Docker Desktop이 설치되지 않았습니다.
+
+설치 방법:
+1) Docker Desktop 다운로드 (무료):
+   https://www.docker.com/products/docker-desktop
+   
+2) 설치 파일 실행:
+   - 다운로드 완료 후 설치 파일 더블클릭
+   - 설치 마법사 따라가기 (기본 설정으로 OK)
+   - 설치 완료 후 컴퓨터 재시작 (권장)
+   
+3) Docker Desktop 시작:
+   - 설치 후 시작 메뉴에서 'Docker Desktop' 검색
+   - Docker Desktop 아이콘이 초록색으로 변할 때까지 대기 (약 30초)
+   - 시스템 트레이(화면 우측 아래)에 Docker 아이콘 표시 확인
+   
+4) 이 프로그램 다시 실행
 ```
 
-**해결:**
-1. Docker Desktop 설치 확인
-2. Docker Desktop 애플리케이션 실행
-3. 시스템 트레이에서 Docker 아이콘 확인 (흰색)
-4. exe 다시 실행
+**해결 단계:**
+1. 위의 링크에서 Docker Desktop 다운로드
+2. 설치 파일을 더블클릭하고 설치 진행
+3. 컴퓨터 재시작
+4. 시작 메뉴에서 "Docker Desktop" 검색해 실행
+5. 시스템 트레이에 Docker 아이콘이 초록색으로 표시될 때까지 대기 (약 30초)
+6. exe 파일 다시 실행
+
+**팁**: Docker Desktop을 항상 실행해두면 exe 시작 시간이 단축됩니다.
+
+### 문제 1-2: "[ERROR] Docker Desktop이 응답하지 않습니다"
+
+**증상:**
+```
+[ERROR] Docker Desktop이 응답하지 않습니다 (실행 중이 아닐 수 있음).
+
+해결 방법:
+1) Docker Desktop 시작:
+   - 시스템 트레이(화면 우측 아래)에서 Docker 아이콘 찾기
+   - 없으면 시작 메뉴에서 'Docker Desktop' 검색해 실행
+   - Docker 아이콘이 초록색으로 변할 때까지 대기 (약 30초)
+   
+2) 이 프로그램 다시 실행
+
+[팁] Docker Desktop을 항상 실행해두면 다음부터 더 빠릅니다.
+```
+
+**해결 단계:**
+1. 시스템 트레이(화면 우측 아래)에서 Docker 아이콘 확인
+2. 아이콘이 없으면 시작 메뉴에서 "Docker Desktop" 검색
+3. Docker Desktop 실행 (첫 실행은 30초 정도 소요)
+4. 아이콘이 초록색으로 변할 때까지 대기
+5. exe 파일 다시 실행
 
 ### 문제 2: "docker-compose.yml을 찾을 수 없습니다"
 

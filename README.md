@@ -196,7 +196,7 @@ Compress-Archive -Path .\AI분석서배포 -DestinationPath .\AI분석서배포.
 
 #### exe 사용 (오프라인 환경)
 ```
-Windows PC:
+Windows PC에서 실행:
   C:\AI분석서\
   ├── AI분석서생성.exe ← 더블클릭!
   └── multi-agent\
@@ -205,12 +205,17 @@ Windows PC:
       └── ... (모든 필수 파일)
 
 자동 실행:
-  1. Docker 설치 확인
+  1. Docker Desktop 설치 여부 확인
+     ⚠️ 설치 안 됨 → 상세한 설치 가이드 제시
+     ⚠️ 미실행 → Docker Desktop 시작 방법 안내
   2. docker-compose 시작 (app + ollama)
   3. 브라우저 자동 오픈 (http://localhost:8000)
   4. 사용자는 텍스트/파일 입력 후 분석 시작
-  
-  ✅ 따로 설정할 게 없음!
+
+필수 요구사항:
+  ✅ Docker Desktop 설치 및 실행 (https://www.docker.com/products/docker-desktop)
+  ✅ Windows 10 (Build 1903+) 이상
+  ✅ 최소 8GB RAM, 20GB 여유 디스크 공간
 ```
 
 📄 **상세 가이드**: 
@@ -654,9 +659,14 @@ curl -X POST http://localhost:8000/api/analyze \
 **A**: 3단계입니다:
 1. **온라인 PC에서** `scripts/build-exe.ps1` 실행 → exe 빌드 (1회)
 2. **배포 패키지 준비** (exe + multi-agent 폴더)
-3. **오프라인 PC에서** exe 더블클릭 → 자동 실행
+3. **오프라인 PC에서 실행 전에 Docker Desktop 설치** (필수!)
+   - 다운로드: https://www.docker.com/products/docker-desktop
+   - 설치 후 실행 (시스템 트레이에서 초록색 Docker 아이콘 확인)
+4. **exe 더블클릭** → 자동 실행
 
-자세한 가이드: `WINDOWS_DEPLOYMENT_ACTUAL.md`
+exe 실행 시 Docker 설치 여부를 자동으로 확인하고 설치되지 않았으면 상세한 설치 가이드를 제시합니다.
+
+자세한 가이드: `WINDOWS_DEPLOYMENT_ACTUAL.md` 및 `WINDOWS_EXE_GUIDE.md`
 
 ### 📦 시뮬레이션
 **Q: 배포 과정을 먼저 시뮬레이션해볼 수 있나요?**
