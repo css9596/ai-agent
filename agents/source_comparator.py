@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 
 from utils.claude_client import ClaudeClient
 from utils.project_extractor import ProjectSnapshot
+from utils.context_builder import KOREAN_INSTRUCTION
 
 
 class SourceComparatorAgent:
@@ -68,7 +69,7 @@ class SourceComparatorAgent:
             system_prompt=(
                 "You are a source code comparison assistant. "
                 "Compare analysis requirements with actual source structure and provide modification guides. "
-                "Always respond with valid JSON only."
+                "Always respond with valid JSON only. Always respond in Korean only."
             ),
             user_prompt=prompt
         )
@@ -101,6 +102,7 @@ class SourceComparatorAgent:
         functional_reqs = planner.get("functional_requirements", [])
 
         prompt = (
+            f"{KOREAN_INSTRUCTION}\n\n"
             "# 소스 코드 비교 분석\n\n"
             "## 분석 결과 (필요한 변경)\n\n"
             f"**영향받는 모듈**: {', '.join(impacted_modules)}\n\n"

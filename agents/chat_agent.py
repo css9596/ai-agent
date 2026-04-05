@@ -2,6 +2,7 @@ import json
 from typing import Any, Dict, List
 
 from utils.claude_client import ClaudeClient
+from utils.context_builder import KOREAN_INSTRUCTION
 
 
 class ChatAgent:
@@ -41,6 +42,7 @@ class ChatAgent:
         reviewer = context.get("reviewer", {})
 
         prompt = (
+            f"{KOREAN_INSTRUCTION}\n\n"
             "사용자의 요구사항 정제 질문을 분석하세요.\n"
             "질문 유형을 판단하고 답변을 제공하세요.\n\n"
             "질문 분류:\n"
@@ -64,7 +66,7 @@ class ChatAgent:
         )
 
         result = self.client.request_json(
-            system_prompt="You are a helpful requirements refinement assistant. Analyze user questions and provide answers based on the analysis context.",
+            system_prompt="You are a helpful requirements refinement assistant. Analyze user questions and provide answers based on the analysis context. Always respond in Korean only.",
             user_prompt=prompt,
         )
 
