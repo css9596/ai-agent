@@ -174,7 +174,7 @@ def start_docker_compose():
             cwd=app_dir,
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=300  # 첫 실행 시 Ollama 이미지 다운로드 (5-20분)
         )
 
         if result.returncode == 0:
