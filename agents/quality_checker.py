@@ -2,6 +2,7 @@ import json
 from typing import Any, Dict
 
 from utils.claude_client import ClaudeClient
+from utils.context_builder import KOREAN_INSTRUCTION
 
 QUALITY_THRESHOLD = 95
 MAX_RETRIES = 2
@@ -21,6 +22,7 @@ class QualityCheckerAgent:
         reviewer_data = context.get("reviewer", {})
 
         prompt = (
+            f"{KOREAN_INSTRUCTION}\n\n"
             "다음 멀티에이전트 분석 결과의 품질을 엄격하게 평가하세요.\n"
             "각 에이전트의 결과를 0~100점으로 채점하고 부족한 부분에 구체적인 피드백을 제공하세요.\n"
             "95점 미만인 에이전트는 반드시 retry_agents 목록에 포함하세요.\n"

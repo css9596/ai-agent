@@ -1,6 +1,8 @@
 """프롬프트 컨텍스트 빌더 (프로필 + 히스토리 → 프롬프트 섹션)"""
 from typing import Dict, List
 
+KOREAN_INSTRUCTION = "\n\n[언어 규칙] 반드시 한국어로만 답변하세요. 절대 중국어나 영어로 답변하지 마세요."
+
 
 def build_profile_section(profile: Dict[str, str]) -> str:
     """프로필 → 프롬프트 섹션 변환"""

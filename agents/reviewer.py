@@ -2,6 +2,7 @@ import json
 from typing import Any, Dict
 
 from utils.claude_client import ClaudeClient
+from utils.context_builder import KOREAN_INSTRUCTION
 
 
 class ReviewerAgent:
@@ -19,6 +20,7 @@ class ReviewerAgent:
             f"\n\n[이전 분석 피드백 - 반드시 반영하세요]\n{feedback}" if feedback else ""
         )
         prompt = (
+            f"{KOREAN_INSTRUCTION}\n\n"
             "기획안, 개발 스펙, 영향도 분석을 교차 검토해서 누락 예외처리/보안/성능/일정 리스크를 도출하세요.\n"
             "반드시 JSON으로만 답변하세요.\n"
             "스키마:\n"

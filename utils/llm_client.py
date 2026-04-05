@@ -25,6 +25,11 @@ class LLMClient:
         self.mock = mock
         self._client = OpenAI(api_key=api_key, base_url=base_url) if not mock else None
 
+    @staticmethod
+    def _korean_system_prompt(system_prompt: str) -> str:
+        """한국어 응답 지시를 system_prompt에 추가"""
+        return system_prompt + "\n반드시 한국어로만 답변하세요. Never respond in Chinese or English."
+
     def request_json(
         self,
         system_prompt: str,
@@ -37,6 +42,7 @@ class LLMClient:
 
         last_error: Optional[Exception] = None
         last_text: str = ""
+        system_prompt = self._korean_system_prompt(system_prompt)
 
         for attempt in range(1, max_retries + 1):
             try:
@@ -82,6 +88,7 @@ class LLMClient:
             return self._mock_text_response(system_prompt, user_prompt)
 
         last_error: Optional[Exception] = None
+        system_prompt = self._korean_system_prompt(system_prompt)
 
         for attempt in range(1, max_retries + 1):
             try:
