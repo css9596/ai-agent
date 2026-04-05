@@ -318,6 +318,16 @@
                                 <span class="hidden sm:inline">JSON</span>
                             </button>
                         </div>
+
+                        <!-- 학습 저장 버튼 -->
+                        <div class="mt-4 flex items-center gap-3">
+                            <button id="saveExampleBtn" onclick="saveAsExample()" class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl hover:from-green-600 hover:to-emerald-600 transition-smooth shadow-md">
+                                <i class="fas fa-thumbs-up"></i> 이 분석 기억하기
+                            </button>
+                            <span id="saveExampleStatus" class="text-sm text-green-700 hidden">
+                                <i class="fas fa-check-circle mr-1"></i> 저장되었습니다! 다음 분석부터 자동 참조됩니다.
+                            </span>
+                        </div>
                     </div>
 
                     <!-- Content -->
@@ -879,6 +889,33 @@
                 if (outputFileName) handler(outputFileName);
             });
         });
+
+        // ========== 학습 예시 자동 저장 (Layer 2) ==========
+        async function saveAsExample() {
+            if (!currentJobId) return;
+            const btn = document.getElementById('saveExampleBtn');
+            const status = document.getElementById('saveExampleStatus');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
+            try {
+                const res = await fetch(`/api/analyses/${currentJobId}/save-example`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    btn.innerHTML = '<i class="fas fa-check"></i> 저장됨!';
+                    btn.classList.remove('from-green-500', 'to-emerald-500', 'hover:from-green-600', 'hover:to-emerald-600');
+                    btn.classList.add('from-gray-400', 'to-gray-500');
+                    status.classList.remove('hidden');
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-thumbs-up"></i> 이 분석 기억하기';
+                    alert('저장 실패: ' + (data.detail || '알 수 없는 오류'));
+                }
+            } catch (e) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-thumbs-up"></i> 이 분석 기억하기';
+                alert('저장 중 오류가 발생했습니다.');
+            }
+        }
 
         // ========== 새 분석 ==========
         document.getElementById('newAnalysisBtn').addEventListener('click', () => {

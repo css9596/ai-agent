@@ -1,6 +1,8 @@
 from typing import Any, Dict
 
 from utils.claude_client import ClaudeClient
+from utils.context_builder import build_profile_section as _build_profile_section
+from utils.context_builder import build_history_section as _build_history_section
 
 
 class DocumenterAgent:
@@ -69,12 +71,17 @@ class DocumenterAgent:
             "|---|---|---|\n"
             "| 종합 | - | - |\n"
         )
+        profile_section = _build_profile_section(context.get("profile_context", ""))
+        history_section = _build_history_section(context.get("history_context", []))
+
         prompt = (
             "다음 분석 결과를 바탕으로 개발팀이 바로 사용할 수 있는 마크다운 개발 분석서를 작성하세요.\n"
             "아래 템플릿 섹션과 표 구조를 반드시 유지하세요.\n"
             "모든 섹션은 실제 내용으로 채우고, 비어 있는 섹션은 '추가 확인 필요'로 명시하세요.\n"
             "지나치게 장황하지 않게 실무용으로 간결하게 작성하세요.\n\n"
             f"[출력 템플릿]\n{template}\n\n"
+            f"{profile_section}"
+            f"{history_section}"
             f"{examples_section}"
             f"[통합 컨텍스트]\n{context}"
         )

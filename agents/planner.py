@@ -2,6 +2,8 @@ import json
 from typing import Any, Dict
 
 from utils.claude_client import ClaudeClient
+from utils.context_builder import build_profile_section as _build_profile_section
+from utils.context_builder import build_history_section as _build_history_section
 
 
 class PlannerAgent:
@@ -13,6 +15,10 @@ class PlannerAgent:
     def run(self, context: Dict[str, Any], feedback: str = "", examples: list = None) -> Dict[str, Any]:
         print("[Planner] 분석 중...")
         document = context["input_document"]
+
+        profile_section = _build_profile_section(context.get("profile_context", ""))
+        history_section = _build_history_section(context.get("history_context", []))
+
         feedback_section = (
             f"\n\n[이전 분석 피드백 - 반드시 반영하세요]\n{feedback}" if feedback else ""
         )
@@ -34,6 +40,8 @@ class PlannerAgent:
             '"ambiguities": [], "clarification_questions": []'
             "}\n\n"
             f"[요청 문서]\n{document}"
+            f"{profile_section}"
+            f"{history_section}"
             f"{examples_section}"
             f"{feedback_section}"
         )

@@ -77,6 +77,15 @@ class Database:
                 )
             """)
 
+            # AI 비서 프로필 테이블 (사용자 커스텀 컨텍스트)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_profile (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # Few-shot Learning: 학습 예시 관리 테이블
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS training_examples (
@@ -546,6 +555,74 @@ class Database:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM training_examples WHERE is_active = 1")
             return cursor.fetchone()[0]
+
+    # ===================================================================
+    # AI 비서 프로필 관리 (Layer 1)
+    # ===================================================================
+
+    def set_profile(self, key: str, value: str) -> None:
+        """프로필 키-값 저장 (없으면 생성, 있으면 업데이트)"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO user_profile (key, value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+            """, (key, value, datetime.now()))
+            conn.commit()
+
+    def get_profile(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """프로필 단일 값 조회"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT value FROM user_profile WHERE key = ?", (key,))
+            result = cursor.fetchone()
+            return result[0] if result else default
+
+    def get_all_profile(self) -> Dict[str, str]:
+        """전체 프로필 딕셔너리 조회"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT key, value FROM user_profile")
+            return {row[0]: row[1] for row in cursor.fetchall()}
+
+    # ===================================================================
+    # 히스토리 컨텍스트 (Layer 3)
+    # ===================================================================
+
+    def get_recent_context_analyses(self, limit: int = 3) -> List[Dict[str, Any]]:
+        """최근 완료된 분석들의 요약 조회 (프롬프트 주입용)"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, file_name, input_text, output_file, created_at
+                FROM analyses
+                WHERE status = 'completed' AND output_file IS NOT NULL
+                ORDER BY completed_at DESC
+                LIMIT ?
+            """, (limit,))
+            rows = [dict(row) for row in cursor.fetchall()]
+
+        # output_file에서 마크다운 앞부분 읽기
+        results = []
+        for row in rows:
+            summary = ""
+            if row.get("output_file"):
+                try:
+                    output_path = Path(row["output_file"])
+                    if output_path.exists():
+                        content = output_path.read_text(encoding="utf-8")
+                        summary = content[:800]  # 앞 800자만
+                except Exception:
+                    pass
+            results.append({
+                "input_text": row.get("input_text") or "",
+                "output_summary": summary,
+                "file_name": row.get("file_name") or "텍스트 입력",
+                "created_at": row.get("created_at") or "",
+            })
+        return results
 
 
 # 전역 DB 인스턴스

@@ -1349,6 +1349,84 @@ def run_comparison_in_background(
 
 
 # ============================================================================
+# AI 비서 프로필 API (Layer 1)
+# ============================================================================
+
+@app.get("/api/profile")
+async def get_profile():
+    """사용자 프로필 조회"""
+    try:
+        profile = db.get_all_profile()
+        return {"success": True, "profile": profile}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/profile")
+async def save_profile(
+    company_name: str = Form(default=""),
+    team_name: str = Form(default=""),
+    tech_stack: str = Form(default=""),
+    custom_terms: str = Form(default=""),
+    analysis_style: str = Form(default=""),
+    extra_notes: str = Form(default=""),
+):
+    """사용자 프로필 저장"""
+    try:
+        fields = {
+            "company_name": company_name,
+            "team_name": team_name,
+            "tech_stack": tech_stack,
+            "custom_terms": custom_terms,
+            "analysis_style": analysis_style,
+            "extra_notes": extra_notes,
+        }
+        for key, value in fields.items():
+            if value.strip():
+                db.set_profile(key, value.strip())
+        logger.info("프로필 저장 완료")
+        return {"success": True, "message": "프로필이 저장되었습니다."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# 분석 결과 자동 학습 예시 저장 API (Layer 2)
+# ============================================================================
+
+@app.post("/api/analyses/{job_id}/save-example")
+async def save_analysis_as_example(job_id: str):
+    """완료된 분석을 학습 예시로 원클릭 저장"""
+    try:
+        context = job_contexts.get(job_id)
+        if not context:
+            raise HTTPException(status_code=404, detail="분석 결과를 찾을 수 없습니다. 페이지를 새로고침 후 다시 시도하세요.")
+
+        input_doc = context.get("input_document", "")
+        markdown = context.get("documenter", {}).get("markdown", "")
+        if not markdown:
+            raise HTTPException(status_code=400, detail="분석 결과가 없습니다.")
+
+        # 제목 자동 생성 (입력 첫 줄 or 파일명)
+        title = input_doc.split("\n")[0][:50] or "분석 예시"
+
+        example_id = str(uuid.uuid4())
+        db.add_training_example(
+            example_id=example_id,
+            title=title,
+            input_text=input_doc[:2000],
+            output_markdown=markdown[:5000],
+            quality_score=7,  # 기본 7점, 나중에 조정 가능
+        )
+        logger.info("분석 결과 자동 저장", job_id=job_id, example_id=example_id)
+        return {"success": True, "example_id": example_id, "message": "이 분석이 학습 예시로 저장되었습니다!"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
 # 학습 예시 관리 API (Few-shot Learning)
 # ============================================================================
 

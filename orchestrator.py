@@ -63,9 +63,11 @@ class Orchestrator:
         selection = self.select_agents(document)
         context["orchestrator"] = selection
 
-        # 학습 예시 조회
+        # AI 비서 컨텍스트 로드 (프로필 + 히스토리 + 학습 예시)
         db = Database()
         examples = db.get_training_examples(limit=2)
+        context["profile_context"] = db.get_all_profile()
+        context["history_context"] = db.get_recent_context_analyses(limit=3)
 
         # 1단계: 분석 에이전트 순차 실행
         for agent_name in ANALYSIS_ORDER:
