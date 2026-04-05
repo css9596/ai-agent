@@ -115,7 +115,7 @@ async def cleanup_old_analyses():
 @app.on_event("startup")
 async def startup_event():
     """애플리케이션 시작"""
-    logger.info("시스템 시작", mock_mode=settings.MOCK_MODE)
+    logger.info("시스템 시작", llm_mode=settings.LLM_MODE)
 
     # 스케줄러 설정 (매일 새벽 2시)
     scheduler.add_job(cleanup_old_analyses, "cron", hour=2, minute=0)
@@ -759,7 +759,7 @@ async def get_settings():
         "llm": {
             "base_url": settings.LLM_BASE_URL,
             "model": settings.LLM_MODEL,
-            "mock_mode": settings.MOCK_MODE,
+            "llm_mode": settings.LLM_MODE,
         },
         "analysis": {
             "max_file_size_mb": settings.MAX_FILE_SIZE_MB,
@@ -834,7 +834,7 @@ async def health_detailed():
         llm_status = "healthy"
         try:
             # 간단한 헬스 체크 (실제로는 LLM에 ping 요청)
-            if not settings.MOCK_MODE:
+            if settings.LLM_MODE != "mock":
                 # LLM 서버 연결 테스트는 실제 구현 필요
                 pass
         except Exception:
@@ -851,7 +851,7 @@ async def health_detailed():
                 "llm": {
                     "status": llm_status,
                     "model": settings.LLM_MODEL,
-                    "mode": "mock" if settings.MOCK_MODE else "real",
+                    "mode": settings.LLM_MODE,
                 },
                 "storage": {
                     "status": "healthy",

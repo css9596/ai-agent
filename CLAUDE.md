@@ -9,10 +9,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 핵심 특징
 - **멀티에이전트 아키텍처**: 7개 specialized agents가 pipeline으로 동작
 - **자동 품질 검사**: 분석 결과가 95점 미만이면 자동으로 재분석 (최대 2회)
-- **채팅형 정제**: 분석 후 "S3로 바꾸면?"같은 후속 질문으로 요구사항 정제 가능
+- **채팅형 정제**: 분석 후 "S3로 바꾸면?"같은 후속 질문으로 요구사항 정제 ⭐ Phase 5A
+- **소스 비교 & 수정 가이드**: 분석 결과와 실제 소스코드 비교 → 파일별 수정 위치/사유 자동 도출 ⭐ Phase 6
 - **다중 포맷 지원**: 입력(텍스트/PDF/Excel/PowerPoint) → 출력(MD/HTML/PDF/Word/JSON)
+- **3가지 LLM 모드**: Mock(개발), Local(Ollama), Claude(API) 자유 선택 ⭐ Phase 6
+- **프로젝트 로컬 저장**: 프로젝트 ZIP 업로드 후 자동 저장 (재분석 불필요) ⭐ Phase 6
 - **웹 + CLI 모드**: FastAPI 웹서버 또는 CLI로 실행
-- **오프라인 지원**: Ollama 로컬 LLM으로도 가능
 
 ---
 
@@ -22,29 +24,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # 초기 설정
 cd multi-agent
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# CLI 실행 (모의 모드)
-python main.py --mock --input "게시판에 파일 첨부 기능 추가"
+# ⭐ LLM 모드 선택 (3가지)
 
-# CLI 실행 (실제 API, 필요: ANTHROPIC_API_KEY)
-export ANTHROPIC_API_KEY=sk-ant-...
-python main.py --input "요구사항"
+# 1️⃣ Mock 모드 (기본, API 불필요, 개발/테스트용)
+LLM_MODE=mock python app.py
 
-# 웹서버 실행
-python app.py
-# http://localhost:8000 접속
+# 2️⃣ Local 모드 (무료 Ollama LLM, Ollama 설치 필수)
+# ollama pull llama3.3:70b
+LLM_MODE=local LLM_BASE_URL=http://localhost:11434/v1 LLM_MODEL=llama3.3:70b python app.py
+
+# 3️⃣ Claude 모드 (Claude API, 최고 정확도)
+LLM_MODE=claude ANTHROPIC_API_KEY=sk-ant-... python app.py
+
+# CLI 실행
+python main.py --input "게시판에 파일 첨부 기능 추가"
+python main.py --input "./sample_requirements.txt"
 
 # 테스트 실행
 pytest tests/ -v                          # 전체 테스트
-pytest tests/test_agents.py -v           # 특정 테스트 파일
-pytest tests/test_performance.py::TestPipelinePerformance -v  # 특정 테스트 함수
-pytest tests/ --cov=. --cov-report=html  # 커버리지 리포트 생성
+pytest tests/ --cov=. --cov-report=html  # 커버리지 리포트
 
-# 로컬 마크다운 분석 결과 확인
+# 분석 결과 확인
 ls -ltr output/ | tail -1
 cat output/analysis_*.md | head -100
+
+# 프로젝트 목록 확인 (Phase 6)
+ls -ltr projects/ | tail -5
 ```
 
 ---

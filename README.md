@@ -81,6 +81,14 @@ Markdown → HTML → PDF → Word → JSON
 - 📝 **히스토리 저장**: 모든 대화가 DB에 영구 저장되어 나중에 참고 가능
 - 🎯 **추천 질문**: AI가 자동으로 다음 질문 제안
 
+### 9️⃣ **소스 코드 프로젝트 관리 & 수정 가이드** ⭐ Phase 6
+- 🗂️ **프로젝트 업로드**: Windows 파일 선택기로 ZIP 파일 업로드
+- 💾 **로컬 저장**: 한 번 업로드한 프로젝트는 로컬에 자동 저장 (재분석 불필요)
+- 🔍 **소스 비교**: 분석 결과 vs 실제 소스코드 자동 비교
+- 📋 **수정 가이드 자동 생성**: 파일별 변경 위치, 변경 사유, 코드 스니펫 제시
+- 🔧 **레이어별 영향도**: Controller/Service/DAO/JSP/JS에서 어디를 수정할지 자동 파악
+- 🗄️ **DB 변경 SQL**: 필요한 테이블 생성/수정 SQL 자동 제시
+
 ---
 
 ## 🚀 빠른 시작
@@ -105,38 +113,61 @@ source .venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
 ```
 
-### 2. API 키 설정
+### 2. LLM 모드 선택
 
-**방법 A: .env 파일** (권장)
+**3가지 모드** (`.env` 또는 환경 변수로 설정):
+
 ```bash
-cat > .env << 'EOF'
+# 모드 1: Mock (기본값, API 불필요) - 개발/테스트용
+# API 키 없어도 즉시 실행 가능
+LLM_MODE=mock
+
+# 모드 2: Local (무료, 인터넷 불필요)
+# Ollama 설치 필수: https://ollama.com
+# ollama pull llama3.3:70b
+LLM_MODE=local
+LLM_BASE_URL=http://localhost:11434/v1
+LLM_MODEL=llama3.3:70b
+
+# 모드 3: Claude API (유료, 가장 정확)
+LLM_MODE=claude
 ANTHROPIC_API_KEY=sk-ant-your-api-key-here
-EOF
 ```
 
-**방법 B: 환경 변수**
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+**.env 파일 예시** (권장):
+```env
+# LLM 모드 선택: mock / local / claude
+LLM_MODE=mock
+
+# Claude API 모드일 경우에만 필요
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Local 모드일 경우만 필요
+LLM_BASE_URL=http://localhost:11434/v1
+LLM_MODEL=llama3.3:70b
 ```
 
 ### 3. 실행
 
 #### CLI 모드 (터미널)
 ```bash
-# 텍스트 직접 입력
-python main.py --input "게시판에 파일 첨부 기능을 추가해주세요"
+# Mock 모드 (API 키 불필요)
+LLM_MODE=mock python main.py --input "게시판에 파일 첨부 기능을 추가해주세요"
 
 # 파일 입력
 python main.py --input "./sample_requirements.txt"
-
-# 모의 모드 (API 없이 테스트)
-python main.py --mock --input "요청사항"
 ```
 
-#### 웹 서버 (브라우저)
+#### 웹 서버 (브라우저) ⭐ 추천
 ```bash
-# 웹 서버 시작
-python app.py
+# Mock 모드로 실행
+LLM_MODE=mock python app.py
+
+# 또는 Ollama 모드
+LLM_MODE=local python app.py
+
+# 또는 Claude API 모드
+LLM_MODE=claude ANTHROPIC_API_KEY=sk-ant-... python app.py
 
 # 브라우저에서 열기
 # 메인 UI: http://localhost:8000
@@ -199,6 +230,46 @@ python app.py
 6. 모든 대화가 DB에 저장되어 차후 참고 가능
 
 **효과**: 분석 후 반복 질문으로 완성도 있는 설계 ✨
+
+---
+
+### 5️⃣ SM(개발팀장)의 실무 - 소스 코드 비교 & 수정 가이드 ⭐ Phase 6
+**상황**: "게시판 파일 첨부 기능" 분석 완료 후 개발팀이 어디를 수정할지 모름
+
+**처리 과정**:
+1. AI 분석 완료 (개발 사양서 생성)
+2. **[프로젝트 탭]**에서 기존 board-service.zip 업로드
+   - Windows 파일 선택기로 편리하게 선택
+   - 한 번 업로드하면 로컬에 자동 저장 (재분석 불필요)
+3. **[소스 비교 탭]**에서 비교 시작
+   - "게시판 파일 첨부 분석" 선택
+   - "board-service" 프로젝트 선택
+   - [비교 분석 시작]
+4. **AI가 자동으로 수정 가이드 생성**:
+   ```
+   📁 BoardController.java [MODIFY]
+     ├─ writeBoard() 메서드
+     │   📍 라인 70-75 위치
+     │   🔧 multipart 파라미터 처리 추가
+     │   💡 이유: 파일 첨부 기능 FR-02 요구사항
+     │   📝 변경 코드 제시
+     └─ downloadAttach() 메서드
+         🆕 신규 추가
+         💡 이유: 첨부파일 다운로드 엔드포인트
+   
+   📁 AttachService.java
+     🆕 신규 파일 필요
+   
+   🗄️ 데이터베이스 변경
+     └─ BOARD_ATTACH 테이블 [NEW]
+        📝 CREATE TABLE SQL 자동 제시
+   ```
+5. 개발팀이 "어느 파일 어느 부분을 수정할지" 즉시 파악
+
+**효과**: 분석 결과 → 실제 코드 수정까지 자동 연결 🔗
+- 불필요한 회의 없음
+- 수정 누락 가능성 0%
+- 개발 생산성 대폭 상향 📈
 
 ---
 
@@ -291,19 +362,42 @@ python app.py
 
 ---
 
-## 🎨 웹 UI 스크린샷
+## 🎨 웹 UI 탭
 
-### 메인 페이지
-- **Hero Section**: 프로젝트 소개, 지원 형식 표시
-- **파일 업로드**: 드래그&드롭, 파일 미리보기
-- **실시간 모니터링**: 분석 진행 상황 시각화
-- **결과 다운로드**: 5가지 형식 지원
+### 📝 분석 탭
+- **파일 업로드**: 드래그&드롭 또는 파일 선택
+- **지원 형식**: PDF, Excel, PowerPoint, 텍스트
+- **실시간 모니터링**: 분석 진행 상황 시각화 (에이전트별 진행률)
+- **결과 표시**: 마크다운, 채팅 UI
 
-### 관리자 대시보드
+### 💬 채팅 탭 (Phase 5A)
+- **분석 결과 정제**: 분석 완료 후 "S3로 바꾸면?", "보안 위험은?" 등 대화형 질문
+- **자동 재분석**: 변경 요청 시 영향도 자동 재분석
+- **히스토리 저장**: 모든 대화 DB 저장
+- **추천 질문**: AI가 다음 질문 자동 제안
+
+### 👨‍💼 관리자 대시보드
 - **통계**: 총/완료/진행/실패 분석 수
 - **분석 이력**: 파일명, 크기, 상태, 다운로드 링크
 - **페이지네이션**: 20건씩 이전/다음
 - **실시간 갱신**: 5초마다 자동 새로고침
+
+### 🗂️ 프로젝트 탭 (Phase 6)
+- **ZIP 업로드**: Windows 파일 선택기로 프로젝트 업로드
+- **프로젝트명 설정**: 자동 감지 또는 직접 입력
+- **프로젝트 카드**: 등록된 프로젝트 목록, 파일 수, 업로드 날짜
+- **삭제 기능**: 불필요한 프로젝트 제거
+
+### 🔍 소스 비교 탭 (Phase 6)
+- **드롭다운 선택**: 분석 결과 선택 + 프로젝트 선택
+- **비교 시작**: [비교 분석 시작] 버튼
+- **수정 가이드**: 파일별 아코디언으로 상세 정보
+  - 변경 유형 (ADD_METHOD, MODIFY, NEW)
+  - 위치 (라인 번호)
+  - 변경 사유
+  - 변경 전/후 코드 스니펫
+  - 우선순위 (HIGH/MEDIUM/LOW)
+- **DB 변경**: 필요한 SQL 자동 제시
 
 ---
 
@@ -353,17 +447,25 @@ multi-agent/
 ├── config.py              # 설정 관리
 ├── database.py            # 분석 이력 관리
 │
-├── agents/                 # AI 에이전트
+├── agents/                 # AI 에이전트 (7개)
 │   ├── planner.py         # 요구사항 분석
 │   ├── developer.py       # 기술 설계
+│   ├── impact_analyzer.py # 레이어별 파일 영향도 분석 ⭐ Phase 4
 │   ├── reviewer.py        # 리스크 검토
+│   ├── quality_checker.py # 품질 검사 (95점 기준) ⭐ Phase 4
+│   ├── chat_agent.py      # 대화형 요구사항 정제 ⭐ Phase 5A
+│   ├── source_comparator.py # 소스 비교 & 수정 가이드 ⭐ Phase 6
 │   └── documenter.py      # 문서 생성
 │
 ├── utils/                  # 유틸리티
-│   ├── claude_client.py   # Claude API 클라이언트
-│   ├── file_processor.py  # 파일 처리
-│   ├── logger.py          # 로깅
-│   └── queue_manager.py   # 작업 큐
+│   ├── claude_client.py   # Claude/Ollama API 클라이언트
+│   ├── llm_client.py      # Ollama LLM 클라이언트
+│   ├── file_processor.py  # 파일 처리 (PDF, Excel, PowerPoint)
+│   ├── project_extractor.py # ZIP 프로젝트 파싱 ⭐ Phase 6
+│   ├── logger.py          # JSON 구조화 로깅
+│   ├── queue_manager.py   # 작업 큐 관리
+│   ├── export_formats.py  # 내보내기 (HTML, PDF, Word, JSON)
+│   └── comparison.py      # 분석 비교
 │
 ├── static/                 # 웹 UI
 │   ├── index.html         # 메인 페이지
