@@ -1,742 +1,675 @@
 <!DOCTYPE html>
-<html lang="ko" class="scroll-smooth">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 대시보드</title>
-    <!-- Tailwind CSS (로컬) -->
     <link rel="stylesheet" href="/static/vendor/tailwind.min.css">
-    <!-- Font Awesome (로컬) -->
     <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
     <style>
-        * { @apply scroll-smooth; }
-
-        @keyframes pulse-soft {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
-        }
-        .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
-
-        .transition-smooth { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif; }
+        .transition-smooth { transition: all 0.2s ease; }
+        .nav-link { display: block; padding: 10px 16px; border-radius: 8px; font-size: 15px; font-weight: 500; color: #374151; cursor: pointer; transition: all 0.2s; }
+        .nav-link:hover { background: #EFF6FF; color: #2563EB; }
+        .nav-link.active { background: #2563EB; color: #fff; }
+        .nav-link.active:hover { background: #1D4ED8; }
+        .card { background: #fff; border-radius: 12px; border: 1px solid #E5E7EB; padding: 24px; }
+        .stat-card { border-radius: 12px; padding: 20px; color: #fff; }
+        .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .badge-green  { background: #D1FAE5; color: #065F46; }
+        .badge-blue   { background: #DBEAFE; color: #1E40AF; }
+        .badge-yellow { background: #FEF3C7; color: #92400E; }
+        .badge-red    { background: #FEE2E2; color: #991B1B; }
+        .badge-gray   { background: #F3F4F6; color: #4B5563; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { background: #F9FAFB; padding: 12px 16px; text-align: left; font-size: 13px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #E5E7EB; letter-spacing: 0.05em; text-transform: uppercase; }
+        tbody tr { border-bottom: 1px solid #F3F4F6; }
+        tbody tr:hover { background: #F9FAFB; }
+        tbody td { padding: 14px 16px; font-size: 14px; color: #374151; vertical-align: middle; }
+        .form-label { display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .form-input { width: 100%; background: #fff; border: 1.5px solid #D1D5DB; color: #111827; padding: 9px 12px; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; }
+        .form-input:focus { outline: none; border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .form-input::placeholder { color: #9CA3AF; }
+        .btn-primary { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; background: #2563EB; color: #fff; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; border: none; }
+        .btn-primary:hover { background: #1D4ED8; }
+        .btn-secondary { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; background: #F3F4F6; color: #374151; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; border: none; }
+        .btn-secondary:hover { background: #E5E7EB; }
+        .btn-green { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; background: #059669; color: #fff; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; border: none; }
+        .btn-green:hover { background: #047857; }
+        .btn-danger { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; background: #FEE2E2; color: #991B1B; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; border: none; }
+        .btn-danger:hover { background: #FECACA; }
+        .btn-soft { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; background: #DBEAFE; color: #1E40AF; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; border: none; }
+        .btn-soft:hover { background: #BFDBFE; }
+        .section-title { font-size: 24px; font-weight: 700; color: #111827; }
+        .section-desc { font-size: 14px; color: #6B7280; margin-top: 4px; }
+        .log-entry { padding: 6px 0; font-size: 13px; line-height: 1.6; border-bottom: 1px solid #F3F4F6; font-family: 'Courier New', monospace; }
+        .log-info    { color: #1D4ED8; }
+        .log-error   { color: #DC2626; }
+        .log-warning { color: #D97706; }
+        .log-debug   { color: #6B7280; }
+        .pagination-btn { padding: 8px 18px; background: #fff; border: 1.5px solid #D1D5DB; color: #374151; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .pagination-btn:hover:not(:disabled) { border-color: #2563EB; color: #2563EB; }
+        .pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F3F4F6; }
+        .settings-row:last-child { border-bottom: none; }
+        .settings-key { font-size: 14px; color: #6B7280; }
+        .settings-val { font-size: 14px; font-weight: 600; color: #111827; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
-    <div class="flex flex-col lg:flex-row min-h-screen">
-        <!-- Sidebar -->
-        <aside class="w-full lg:w-64 bg-slate-800 border-r border-slate-700 p-4 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
-            <div class="flex items-center gap-3 mb-8 p-4 bg-slate-700 rounded-xl">
-                <i class="fas fa-chart-line text-2xl text-blue-400"></i>
+<body style="background:#F3F4F6; min-height:100vh;">
+<div style="display:flex; min-height:100vh;">
+
+    <!-- Sidebar -->
+    <aside style="width:240px; min-width:240px; background:#fff; border-right:1px solid #E5E7EB; padding:24px 16px; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto;">
+        <!-- Logo -->
+        <div style="display:flex; align-items:center; gap:10px; padding:12px; background:#EFF6FF; border-radius:10px; margin-bottom:24px;">
+            <div style="width:36px; height:36px; background:#2563EB; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-robot" style="color:#fff; font-size:16px;"></i>
+            </div>
+            <div>
+                <div style="font-size:15px; font-weight:700; color:#1E40AF;">AI 분석 시스템</div>
+                <div style="font-size:12px; color:#6B7280;">관리자</div>
+            </div>
+        </div>
+
+        <!-- Nav -->
+        <nav style="display:flex; flex-direction:column; gap:4px; flex:1;">
+            <a onclick="showSection('dashboard')" class="nav-link active">
+                <i class="fas fa-chart-bar" style="width:18px; margin-right:8px;"></i>대시보드
+            </a>
+            <a onclick="showSection('history')" class="nav-link">
+                <i class="fas fa-history" style="width:18px; margin-right:8px;"></i>분석 이력
+            </a>
+            <a onclick="showSection('settings')" class="nav-link">
+                <i class="fas fa-robot" style="width:18px; margin-right:8px;"></i>AI 비서 설정
+            </a>
+            <a onclick="showSection('training')" class="nav-link">
+                <i class="fas fa-book" style="width:18px; margin-right:8px;"></i>학습 예시
+            </a>
+            <a onclick="showSection('logs')" class="nav-link">
+                <i class="fas fa-terminal" style="width:18px; margin-right:8px;"></i>로그
+            </a>
+            <a onclick="showSection('health')" class="nav-link">
+                <i class="fas fa-heartbeat" style="width:18px; margin-right:8px;"></i>시스템 상태
+            </a>
+        </nav>
+
+        <!-- Tip -->
+        <div style="margin-top:16px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px; padding:12px;">
+            <div style="font-size:13px; font-weight:600; color:#166534; margin-bottom:4px;">💡 자동 갱신</div>
+            <div style="font-size:12px; color:#15803D;">대시보드는 5초마다 자동으로 새로고침됩니다.</div>
+        </div>
+
+        <a href="/" style="display:block; margin-top:12px; padding:10px; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:8px; text-align:center; font-size:14px; color:#374151; text-decoration:none; transition:background 0.2s;" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='#F9FAFB'">
+            ← 메인으로
+        </a>
+    </aside>
+
+    <!-- Main -->
+    <main style="flex:1; padding:32px; overflow-x:hidden;">
+
+        <!-- 대시보드 -->
+        <section id="section-dashboard">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
                 <div>
-                    <h1 class="font-bold text-white">관리자</h1>
-                    <p class="text-xs text-gray-400">대시보드</p>
+                    <div class="section-title">대시보드</div>
+                    <div class="section-desc">시스템 성능 및 분석 통계를 실시간으로 확인하세요</div>
+                </div>
+                <button class="btn-secondary" onclick="loadDashboard()">
+                    <i class="fas fa-sync"></i> 새로고침
+                </button>
+            </div>
+
+            <!-- 통계 카드 -->
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px;">
+                <div class="stat-card" style="background:linear-gradient(135deg,#2563EB,#3B82F6);">
+                    <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">총 분석</div>
+                    <div id="stat-total" style="font-size:36px; font-weight:800;">0</div>
+                    <div style="font-size:12px; opacity:0.7; margin-top:4px;">전체 요청</div>
+                </div>
+                <div class="stat-card" style="background:linear-gradient(135deg,#059669,#10B981);">
+                    <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">완료</div>
+                    <div id="stat-completed" style="font-size:36px; font-weight:800;">0</div>
+                    <div style="font-size:12px; opacity:0.7; margin-top:4px;">성공 완료</div>
+                </div>
+                <div class="stat-card" style="background:linear-gradient(135deg,#D97706,#F59E0B);">
+                    <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">진행 중</div>
+                    <div id="stat-pending" style="font-size:36px; font-weight:800;">0</div>
+                    <div style="font-size:12px; opacity:0.7; margin-top:4px;">처리 중</div>
+                </div>
+                <div class="stat-card" style="background:linear-gradient(135deg,#DC2626,#EF4444);">
+                    <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">실패</div>
+                    <div id="stat-failed" style="font-size:36px; font-weight:800;">0</div>
+                    <div style="font-size:12px; opacity:0.7; margin-top:4px;">오류 발생</div>
                 </div>
             </div>
 
-            <nav class="space-y-2">
-                <a onclick="showSection('dashboard')" class="nav-link block w-full px-4 py-3 rounded-lg bg-slate-700 text-white font-medium transition-smooth cursor-pointer hover:bg-blue-600">
-                    <i class="fas fa-chart-bar mr-2 w-5"></i> 대시보드
-                </a>
-                <a onclick="showSection('history')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
-                    <i class="fas fa-history mr-2 w-5"></i> 분석 이력
-                </a>
-                <a onclick="showSection('logs')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
-                    <i class="fas fa-terminal mr-2 w-5"></i> 로그
-                </a>
-                <a onclick="showSection('settings')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
-                    <i class="fas fa-cog mr-2 w-5"></i> 설정
-                </a>
-                <a onclick="showSection('health')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
-                    <i class="fas fa-heartbeat mr-2 w-5"></i> 헬스 체크
-                </a>
-                <a onclick="showSection('training')" class="nav-link block w-full px-4 py-3 rounded-lg text-gray-300 font-medium transition-smooth cursor-pointer hover:bg-slate-700">
-                    <i class="fas fa-book mr-2 w-5"></i> 학습 예시
-                </a>
-            </nav>
+            <!-- 지표 -->
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+                <div class="card">
+                    <div style="font-size:13px; color:#6B7280; margin-bottom:4px;">성공률</div>
+                    <div id="queue-success-rate" style="font-size:32px; font-weight:800; color:#2563EB;">0%</div>
+                    <div style="font-size:12px; color:#9CA3AF; margin-top:4px;">완료된 분석 중</div>
+                </div>
+                <div class="card">
+                    <div style="font-size:13px; color:#6B7280; margin-bottom:4px;">평균 소요 시간</div>
+                    <div id="queue-avg-duration" style="font-size:32px; font-weight:800; color:#059669;">0초</div>
+                    <div style="font-size:12px; color:#9CA3AF; margin-top:4px;">분석당 평균</div>
+                </div>
+                <div class="card">
+                    <div style="font-size:13px; color:#6B7280; margin-bottom:4px;">동시 실행</div>
+                    <div style="font-size:32px; font-weight:800; color:#D97706;"><span id="queue-running">0</span><span style="font-size:20px; color:#9CA3AF;">/<span id="queue-max">3</span></span></div>
+                    <div style="font-size:12px; color:#9CA3AF; margin-top:4px;">현재 / 최대</div>
+                </div>
+            </div>
+        </section>
 
-            <div class="mt-8 p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
-                <p class="text-sm text-white font-semibold mb-2">💡 팁</p>
-                <p class="text-xs text-blue-100">대시보드는 5초마다 자동으로 새로고침됩니다.</p>
+        <!-- 분석 이력 -->
+        <section id="section-history" class="hidden">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
+                <div>
+                    <div class="section-title">분석 이력</div>
+                    <div class="section-desc">모든 분석 작업의 기록을 확인하세요</div>
+                </div>
+                <button class="btn-secondary" onclick="loadHistory()">
+                    <i class="fas fa-sync"></i> 새로고침
+                </button>
             </div>
 
-            <div class="mt-4">
-                <a href="/" class="block w-full px-4 py-2 bg-slate-700 text-gray-300 rounded-lg text-center font-medium transition-smooth hover:bg-slate-600">
-                    ← 메인으로 돌아가기
-                </a>
+            <div class="card" style="padding:0; overflow:hidden;">
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>파일명 / 입력 내용</th>
+                                <th>크기</th>
+                                <th>상태</th>
+                                <th>소요 시간</th>
+                                <th>결과 다운로드</th>
+                                <th>생성 일시</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table"></tbody>
+                    </table>
+                </div>
+
+                <div id="empty-history" style="display:none; padding:48px; text-align:center; color:#9CA3AF;">
+                    <i class="fas fa-inbox" style="font-size:40px; display:block; margin-bottom:12px; opacity:0.4;"></i>
+                    <div style="font-size:15px;">아직 분석 이력이 없습니다</div>
+                    <div style="font-size:13px; margin-top:4px;">메인 화면에서 분석을 시작해보세요</div>
+                </div>
             </div>
-        </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 overflow-x-hidden">
-            <div class="p-4 lg:p-8">
-                <!-- 대시보드 -->
-                <section id="section-dashboard" class="space-y-8">
-                    <div class="flex justify-between items-center mb-8">
-                        <div>
-                            <h1 class="text-4xl font-bold text-white mb-2">대시보드</h1>
-                            <p class="text-gray-400">시스템 성능 및 분석 통계를 실시간으로 확인하세요</p>
-                        </div>
-                        <button onclick="loadDashboard()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-smooth flex items-center gap-2">
-                            <i class="fas fa-sync"></i> 새로고침
-                        </button>
+            <!-- 페이지네이션 -->
+            <div style="display:flex; justify-content:center; align-items:center; gap:16px; margin-top:20px;">
+                <button class="pagination-btn" id="prevPageBtn" onclick="loadHistoryPage(historyPage - 1)">← 이전</button>
+                <span id="pageInfo" style="font-size:14px; color:#6B7280; font-weight:500;"></span>
+                <button class="pagination-btn" id="nextPageBtn" onclick="loadHistoryPage(historyPage + 1)">다음 →</button>
+            </div>
+        </section>
+
+        <!-- AI 비서 설정 -->
+        <section id="section-settings" class="hidden">
+            <div style="margin-bottom:28px;">
+                <div class="section-title">AI 비서 설정</div>
+                <div class="section-desc">입력한 정보가 모든 분석에 자동으로 반영됩니다</div>
+            </div>
+
+            <div class="card" style="border-left:4px solid #2563EB; margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                    <div style="width:40px; height:40px; background:#EFF6FF; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                        <i class="fas fa-robot" style="color:#2563EB; font-size:18px;"></i>
                     </div>
-
-                    <!-- Stats Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-xl">
-                            <div class="flex justify-between items-start mb-4">
-                                <i class="fas fa-chart-bar text-3xl opacity-20"></i>
-                                <span class="text-sm bg-blue-500 px-3 py-1 rounded-full">전체</span>
-                            </div>
-                            <h3 class="text-sm font-semibold text-blue-100 mb-1">총 분석</h3>
-                            <p id="stat-total" class="text-4xl font-bold">0</p>
-                        </div>
-
-                        <div class="bg-gradient-to-br from-green-600 to-emerald-600 rounded-2xl p-6 text-white shadow-xl">
-                            <div class="flex justify-between items-start mb-4">
-                                <i class="fas fa-check-circle text-3xl opacity-20"></i>
-                                <span class="text-sm bg-green-500 px-3 py-1 rounded-full">성공</span>
-                            </div>
-                            <h3 class="text-sm font-semibold text-green-100 mb-1">완료됨</h3>
-                            <p id="stat-completed" class="text-4xl font-bold">0</p>
-                        </div>
-
-                        <div class="bg-gradient-to-br from-yellow-600 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
-                            <div class="flex justify-between items-start mb-4">
-                                <i class="fas fa-clock text-3xl opacity-20"></i>
-                                <span class="text-sm bg-yellow-500 px-3 py-1 rounded-full">진행</span>
-                            </div>
-                            <h3 class="text-sm font-semibold text-yellow-100 mb-1">진행 중</h3>
-                            <p id="stat-pending" class="text-4xl font-bold">0</p>
-                        </div>
-
-                        <div class="bg-gradient-to-br from-red-600 to-pink-600 rounded-2xl p-6 text-white shadow-xl">
-                            <div class="flex justify-between items-start mb-4">
-                                <i class="fas fa-exclamation-circle text-3xl opacity-20"></i>
-                                <span class="text-sm bg-red-500 px-3 py-1 rounded-full">실패</span>
-                            </div>
-                            <h3 class="text-sm font-semibold text-red-100 mb-1">실패</h3>
-                            <p id="stat-failed" class="text-4xl font-bold">0</p>
-                        </div>
-                    </div>
-
-                    <!-- Metrics -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-                            <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
-                                <i class="fas fa-percentage text-blue-400"></i> 성공률
-                            </h3>
-                            <p id="queue-success-rate" class="text-4xl font-bold text-blue-400">0%</p>
-                            <p class="text-gray-400 text-sm mt-2">완료된 분석 중</p>
-                        </div>
-
-                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-                            <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
-                                <i class="fas fa-hourglass-end text-green-400"></i> 평균 시간
-                            </h3>
-                            <p id="queue-avg-duration" class="text-4xl font-bold text-green-400">0초</p>
-                            <p class="text-gray-400 text-sm mt-2">분석당 평균</p>
-                        </div>
-
-                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-                            <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
-                                <i class="fas fa-zap text-yellow-400"></i> 진행 상황
-                            </h3>
-                            <p class="text-4xl font-bold text-yellow-400"><span id="queue-running">0</span>/<span id="queue-max">3</span></p>
-                            <p class="text-gray-400 text-sm mt-2">동시 실행 중</p>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 분석 이력 -->
-                <section id="section-history" class="hidden space-y-8">
-                    <div class="flex justify-between items-center mb-8">
-                        <div>
-                            <h1 class="text-3xl font-bold text-white mb-2">분석 이력</h1>
-                            <p class="text-gray-400">모든 분석 작업의 이력을 관리하세요</p>
-                        </div>
-                        <button onclick="loadHistory()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-smooth flex items-center gap-2">
-                            <i class="fas fa-sync"></i> 새로고침
-                        </button>
-                    </div>
-
-                    <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="bg-slate-700">
-                                    <tr>
-                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">파일명</th>
-                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">파일 크기</th>
-                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">상태</th>
-                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">소요 시간</th>
-                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">결과</th>
-                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">생성 일시</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="history-table" class="divide-y divide-slate-700">
-                                    <!-- Rows will be inserted here -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div id="pagination" class="flex justify-center items-center gap-4">
-                        <button class="btn-pagination" id="prevPageBtn" onclick="loadHistoryPage(historyPage - 1)">← 이전</button>
-                        <span id="pageInfo" class="text-gray-400 font-semibold px-6 py-2">페이지</span>
-                        <button class="btn-pagination" id="nextPageBtn" onclick="loadHistoryPage(historyPage + 1)">다음 →</button>
-                    </div>
-                </section>
-
-                <!-- 로그 -->
-                <section id="section-logs" class="hidden space-y-8">
-                    <div class="flex justify-between items-center mb-8">
-                        <div>
-                            <h1 class="text-3xl font-bold text-white mb-2">로그</h1>
-                            <p class="text-gray-400">실시간 시스템 로그를 확인하세요</p>
-                        </div>
-                        <button onclick="loadLogs()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-smooth flex items-center gap-2">
-                            <i class="fas fa-sync"></i> 새로고침
-                        </button>
-                    </div>
-
-                    <div class="bg-slate-900 rounded-2xl border border-slate-700 p-6 font-mono text-sm h-96 overflow-y-auto" id="log-viewer"></div>
-                </section>
-
-                <!-- 설정 -->
-                <section id="section-settings" class="hidden space-y-8">
                     <div>
-                        <h1 class="text-3xl font-bold text-white mb-2">시스템 설정</h1>
-                        <p class="text-gray-400">현재 설정 상태를 확인하세요</p>
+                        <div style="font-size:16px; font-weight:700; color:#111827;">나만의 AI 비서 프로필</div>
+                        <div style="font-size:13px; color:#6B7280;">저장하면 다음 분석부터 바로 적용됩니다</div>
                     </div>
+                </div>
 
-                    <!-- AI 비서 프로필 -->
-                    <div class="bg-gradient-to-r from-blue-900 to-purple-900 rounded-2xl p-6 border border-blue-700">
-                        <h2 class="text-white font-bold text-xl mb-2 flex items-center gap-2">
-                            <i class="fas fa-robot text-blue-400"></i> 나만의 AI 비서 설정
-                        </h2>
-                        <p class="text-blue-200 text-sm mb-6">여기에 입력한 정보는 모든 분석에 자동으로 반영됩니다.</p>
-                        <form onsubmit="saveProfile(event)" class="space-y-4">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-blue-200 text-sm mb-1">회사명</label>
-                                    <input id="profile-company" type="text" placeholder="예: (주)우리회사" class="w-full bg-slate-800 border border-slate-600 text-white px-3 py-2 rounded-lg text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-blue-200 text-sm mb-1">팀명</label>
-                                    <input id="profile-team" type="text" placeholder="예: 개발1팀" class="w-full bg-slate-800 border border-slate-600 text-white px-3 py-2 rounded-lg text-sm">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-blue-200 text-sm mb-1">기술 스택</label>
-                                <input id="profile-tech" type="text" placeholder="예: Java 17, Spring Boot, Oracle DB, MyBatis, JSP, jQuery" class="w-full bg-slate-800 border border-slate-600 text-white px-3 py-2 rounded-lg text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-blue-200 text-sm mb-1">팀 전용 용어 / 네이밍 규칙</label>
-                                <input id="profile-terms" type="text" placeholder="예: TB_ 로 시작하는 테이블명, camelCase 메서드명" class="w-full bg-slate-800 border border-slate-600 text-white px-3 py-2 rounded-lg text-sm">
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-blue-200 text-sm mb-1">분석 스타일</label>
-                                    <select id="profile-style" class="w-full bg-slate-800 border border-slate-600 text-white px-3 py-2 rounded-lg text-sm">
-                                        <option value="">선택 안 함</option>
-                                        <option value="간결하게 핵심만">간결하게 핵심만</option>
-                                        <option value="상세하고 꼼꼼하게">상세하고 꼼꼼하게</option>
-                                        <option value="표와 목록 중심으로">표와 목록 중심으로</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-blue-200 text-sm mb-1">추가 참고사항</label>
-                                    <input id="profile-notes" type="text" placeholder="예: 보안 이슈는 반드시 강조" class="w-full bg-slate-800 border border-slate-600 text-white px-3 py-2 rounded-lg text-sm">
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-white transition-smooth">
-                                    <i class="fas fa-save mr-2"></i>저장
-                                </button>
-                                <span id="profile-save-status" class="text-sm text-green-400 hidden">
-                                    <i class="fas fa-check-circle mr-1"></i> 저장되었습니다!
-                                </span>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div id="settings-content" class="space-y-6">
-                        <!-- Settings will be inserted here -->
-                    </div>
-                </section>
-
-                <!-- 헬스 체크 -->
-                <section id="section-health" class="hidden space-y-8">
-                    <div>
-                        <h1 class="text-3xl font-bold text-white mb-2">시스템 상태</h1>
-                        <p class="text-gray-400">모든 서비스의 상태를 확인하세요</p>
-                    </div>
-
-                    <div id="health-content" class="space-y-6">
-                        <!-- Health status will be inserted here -->
-                    </div>
-                </section>
-
-                <!-- 학습 예시 -->
-                <section id="section-training" class="hidden space-y-8">
-                    <div class="flex justify-between items-center mb-8">
+                <form onsubmit="saveProfile(event)">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
                         <div>
-                            <h1 class="text-3xl font-bold text-white mb-2">📚 학습 예시</h1>
-                            <p class="text-gray-400">분석 모델의 학습용 예시를 관리하세요</p>
+                            <label class="form-label">회사명</label>
+                            <input id="profile-company" type="text" placeholder="예: (주)우리회사" class="form-input">
                         </div>
-                        <button onclick="showAddExampleForm()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-smooth flex items-center gap-2">
-                            <i class="fas fa-plus"></i> 새 예시 등록
+                        <div>
+                            <label class="form-label">팀명</label>
+                            <input id="profile-team" type="text" placeholder="예: 서버개발1팀" class="form-input">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label class="form-label">기술 스택</label>
+                        <input id="profile-tech" type="text" placeholder="예: Java 17, Spring Boot, Oracle 19c, MyBatis, JSP, jQuery" class="form-input">
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label class="form-label">팀 전용 용어 / 네이밍 규칙</label>
+                        <input id="profile-terms" type="text" placeholder="예: 테이블명은 TB_ 접두사, 메서드명은 camelCase" class="form-input">
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+                        <div>
+                            <label class="form-label">분석 스타일</label>
+                            <select id="profile-style" class="form-input">
+                                <option value="">선택 안 함 (기본)</option>
+                                <option value="간결하게 핵심만">간결하게 핵심만</option>
+                                <option value="상세하고 꼼꼼하게">상세하고 꼼꼼하게</option>
+                                <option value="표와 목록 중심으로">표와 목록 중심으로</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">추가 참고사항</label>
+                            <input id="profile-notes" type="text" placeholder="예: 보안 이슈는 반드시 상세히 기술" class="form-input">
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> 저장하기
                         </button>
+                        <span id="profile-save-status" style="display:none; font-size:14px; color:#059669; font-weight:600;">
+                            <i class="fas fa-check-circle"></i> 저장되었습니다!
+                        </span>
                     </div>
-
-                    <!-- 예시 등록 폼 (초기에는 숨김) -->
-                    <div id="add-example-form" class="hidden bg-slate-800 rounded-2xl p-6 border border-slate-700">
-                        <h2 class="text-white font-bold mb-4">새로운 학습 예시 등록</h2>
-                        <form onsubmit="saveTrainingExample(event)" class="space-y-4">
-                            <div>
-                                <label class="block text-gray-300 mb-2">예시 제목</label>
-                                <input type="text" id="example-title" placeholder="예: 파일 첨부 기능" class="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-lg" required>
-                            </div>
-                            <div>
-                                <label class="block text-gray-300 mb-2">입력 요구사항</label>
-                                <textarea id="example-input" placeholder="사용자 요구사항을 입력하세요..." class="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-lg h-24" required></textarea>
-                            </div>
-                            <div>
-                                <label class="block text-gray-300 mb-2">기대되는 분석 결과 (마크다운)</label>
-                                <textarea id="example-output" placeholder="분석 결과를 마크다운 형식으로 입력하세요..." class="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-lg h-32" required></textarea>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-gray-300 mb-2">카테고리</label>
-                                    <input type="text" id="example-category" placeholder="예: 게시판" class="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-lg">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-300 mb-2">품질 점수 (1-10)</label>
-                                    <input type="number" id="example-quality" min="1" max="10" value="5" class="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded-lg">
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-smooth">저장</button>
-                                <button type="button" onclick="hideAddExampleForm()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-semibold transition-smooth">취소</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- 예시 목록 -->
-                    <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
-                        <div class="p-6 border-b border-slate-700">
-                            <h2 class="text-white font-bold flex items-center gap-2">
-                                <i class="fas fa-list"></i> 등록된 예시
-                            </h2>
-                        </div>
-                        <div id="examples-list" class="divide-y divide-slate-700">
-                            <!-- Examples will be inserted here -->
-                        </div>
-                    </div>
-                </section>
+                </form>
             </div>
-        </main>
-    </div>
 
-    <style>
-        .nav-link { color: inherit; }
-        .nav-link.active { @apply bg-blue-600 text-white; }
-        .btn-pagination {
-            @apply px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-smooth disabled:opacity-50 disabled:cursor-not-allowed;
-        }
-    </style>
+            <div id="settings-content"></div>
+        </section>
 
-    <script>
-        let historyPage = 0;
-        let historyLimit = 20;
-        let historyTotal = 0;
+        <!-- 학습 예시 -->
+        <section id="section-training" class="hidden">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
+                <div>
+                    <div class="section-title">학습 예시 관리</div>
+                    <div class="section-desc">좋은 분석 예시를 등록하면 AI가 해당 스타일로 분석합니다</div>
+                </div>
+                <button class="btn-green" onclick="showAddExampleForm()">
+                    <i class="fas fa-plus"></i> 새 예시 등록
+                </button>
+            </div>
 
-        function formatFileSize(bytes) {
-            if (!bytes || bytes === 0) return '-';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-        }
+            <!-- 등록 폼 -->
+            <div id="add-example-form" class="card hidden" style="margin-bottom:20px; border-left:4px solid #059669;">
+                <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:16px;">새로운 학습 예시 등록</div>
+                <form onsubmit="saveTrainingExample(event)">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                        <div>
+                            <label class="form-label">예시 제목 <span style="color:#DC2626;">*</span></label>
+                            <input type="text" id="example-title" placeholder="예: 게시판 파일 첨부 기능" class="form-input" required>
+                        </div>
+                        <div>
+                            <label class="form-label">카테고리</label>
+                            <input type="text" id="example-category" placeholder="예: 게시판, 로그인, 파일관리" class="form-input">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label class="form-label">입력 요구사항 <span style="color:#DC2626;">*</span></label>
+                        <textarea id="example-input" placeholder="사용자가 입력한 요구사항 내용..." class="form-input" style="height:80px; resize:vertical;" required></textarea>
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label class="form-label">기대 분석 결과 (마크다운) <span style="color:#DC2626;">*</span></label>
+                        <textarea id="example-output" placeholder="이 입력에 대한 좋은 분석 결과를 마크다운으로 입력..." class="form-input" style="height:120px; resize:vertical;" required></textarea>
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <label class="form-label">품질 점수 (1~10)</label>
+                        <input type="number" id="example-quality" min="1" max="10" value="7" class="form-input" style="width:100px;">
+                        <div style="font-size:12px; color:#9CA3AF; margin-top:4px;">점수가 높을수록 더 자주 참조됩니다</div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="submit" class="btn-green"><i class="fas fa-save"></i> 저장</button>
+                        <button type="button" class="btn-secondary" onclick="hideAddExampleForm()">취소</button>
+                    </div>
+                </form>
+            </div>
 
-        function showSection(sectionName) {
-            document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`section-${sectionName}`).classList.remove('hidden');
+            <!-- 예시 목록 -->
+            <div class="card" style="padding:0; overflow:hidden;">
+                <div style="padding:16px 20px; border-bottom:1px solid #E5E7EB; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:15px; font-weight:600; color:#111827;">등록된 예시</div>
+                    <span id="examples-count" style="font-size:13px; color:#6B7280;"></span>
+                </div>
+                <div id="examples-list"></div>
+            </div>
+        </section>
 
-            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-            event.target.closest('.nav-link').classList.add('active');
+        <!-- 로그 -->
+        <section id="section-logs" class="hidden">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
+                <div>
+                    <div class="section-title">시스템 로그</div>
+                    <div class="section-desc">최근 50건의 로그를 확인하세요</div>
+                </div>
+                <button class="btn-secondary" onclick="loadLogs()">
+                    <i class="fas fa-sync"></i> 새로고침
+                </button>
+            </div>
 
-            if (sectionName === 'dashboard') loadDashboard();
-            else if (sectionName === 'history') loadHistory();
-            else if (sectionName === 'logs') loadLogs();
-            else if (sectionName === 'settings') { loadSettings(); loadProfile(); }
-            else if (sectionName === 'health') loadHealth();
-            else if (sectionName === 'training') loadTrainingExamples();
-        }
+            <div class="card" style="padding:0; overflow:hidden;">
+                <div style="padding:10px 16px; background:#1E293B; display:flex; align-items:center; gap:8px;">
+                    <span style="width:12px; height:12px; background:#EF4444; border-radius:50%; display:inline-block;"></span>
+                    <span style="width:12px; height:12px; background:#F59E0B; border-radius:50%; display:inline-block;"></span>
+                    <span style="width:12px; height:12px; background:#10B981; border-radius:50%; display:inline-block;"></span>
+                    <span style="font-size:13px; color:#94A3B8; margin-left:8px;">system.log</span>
+                </div>
+                <div id="log-viewer" style="background:#0F172A; padding:16px; height:400px; overflow-y:auto;"></div>
+            </div>
 
-        async function loadDashboard() {
-            try {
-                const response = await fetch('/api/admin/dashboard');
-                const data = await response.json();
+            <div style="margin-top:12px; display:flex; gap:16px; font-size:13px; color:#6B7280;">
+                <span style="color:#1D4ED8;">■ INFO</span>
+                <span style="color:#DC2626;">■ ERROR</span>
+                <span style="color:#D97706;">■ WARNING</span>
+                <span style="color:#6B7280;">■ DEBUG</span>
+            </div>
+        </section>
 
-                document.getElementById('stat-total').textContent = data.statistics.total;
-                document.getElementById('stat-completed').textContent = data.statistics.completed;
-                document.getElementById('stat-pending').textContent = data.queue.pending;
-                document.getElementById('stat-failed').textContent = data.statistics.failed;
-                document.getElementById('queue-success-rate').textContent = `${data.statistics.success_rate}%`;
-                document.getElementById('queue-avg-duration').textContent = `${data.statistics.avg_duration_seconds}초`;
-                document.getElementById('queue-running').textContent = `${data.queue.running}`;
-                document.getElementById('queue-max').textContent = `${data.queue.max_concurrent}`;
-            } catch (error) {
-                console.error('대시보드 로드 실패:', error);
-            }
-        }
+        <!-- 시스템 상태 -->
+        <section id="section-health" class="hidden">
+            <div style="margin-bottom:28px;">
+                <div class="section-title">시스템 상태</div>
+                <div class="section-desc">서비스 및 리소스 상태를 확인하세요</div>
+            </div>
+            <div id="health-content"></div>
+        </section>
 
-        async function loadHistoryPage(page) {
-            if (page < 0) return;
+    </main>
+</div>
 
-            historyPage = page;
-            const offset = page * historyLimit;
+<script>
+    let historyPage = 0;
+    const historyLimit = 20;
+    let historyTotal = 0;
 
-            try {
-                const response = await fetch(`/api/history?limit=${historyLimit}&offset=${offset}`);
-                const data = await response.json();
+    function formatFileSize(bytes) {
+        if (!bytes || bytes === 0) return '-';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
 
-                historyTotal = data.total;
-                const tbody = document.querySelector('#history-table tbody') || document.getElementById('history-table');
-                tbody.innerHTML = '';
+    function formatDate(str) {
+        if (!str) return '-';
+        const d = new Date(str);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
 
-                data.analyses.forEach(analysis => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-slate-700 transition-smooth';
+    function showSection(sectionName) {
+        document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`section-${sectionName}`).classList.remove('hidden');
+        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        event.currentTarget.classList.add('active');
 
-                    let downloadCell = '-';
-                    if (analysis.output_file) {
-                        const fileName = analysis.output_file.split('/').pop();
-                        downloadCell = `<a href="/api/download/${fileName}" target="_blank" class="text-blue-400 hover:text-blue-300 font-semibold"><i class="fas fa-download"></i> ${fileName}</a>`;
+        if (sectionName === 'dashboard') loadDashboard();
+        else if (sectionName === 'history') loadHistory();
+        else if (sectionName === 'logs') loadLogs();
+        else if (sectionName === 'settings') { loadSettings(); loadProfile(); }
+        else if (sectionName === 'health') loadHealth();
+        else if (sectionName === 'training') loadTrainingExamples();
+    }
+
+    // ────── 대시보드 ──────
+    async function loadDashboard() {
+        try {
+            const res = await fetch('/api/admin/dashboard');
+            const data = await res.json();
+            document.getElementById('stat-total').textContent = data.statistics.total;
+            document.getElementById('stat-completed').textContent = data.statistics.completed;
+            document.getElementById('stat-pending').textContent = data.queue.pending;
+            document.getElementById('stat-failed').textContent = data.statistics.failed;
+            document.getElementById('queue-success-rate').textContent = data.statistics.success_rate + '%';
+            document.getElementById('queue-avg-duration').textContent = data.statistics.avg_duration_seconds + '초';
+            document.getElementById('queue-running').textContent = data.queue.running;
+            document.getElementById('queue-max').textContent = data.queue.max_concurrent;
+        } catch (e) { console.error('대시보드 로드 실패:', e); }
+    }
+
+    // ────── 분석 이력 ──────
+    const STATUS_KO = { completed:'완료', running:'분석중', pending:'대기', failed:'실패' };
+    const STATUS_BADGE = { completed:'badge-green', running:'badge-blue', pending:'badge-yellow', failed:'badge-red' };
+
+    async function loadHistoryPage(page) {
+        if (page < 0) return;
+        historyPage = page;
+        const offset = page * historyLimit;
+        try {
+            const res = await fetch(`/api/history?limit=${historyLimit}&offset=${offset}`);
+            const data = await res.json();
+            historyTotal = data.total;
+            const tbody = document.getElementById('history-table');
+            tbody.innerHTML = '';
+
+            const empty = document.getElementById('empty-history');
+            if (!data.analyses || data.analyses.length === 0) {
+                empty.style.display = 'block';
+            } else {
+                empty.style.display = 'none';
+                data.analyses.forEach(a => {
+                    const tr = document.createElement('tr');
+                    let downloadCell = '<span style="color:#9CA3AF;">-</span>';
+                    if (a.output_file) {
+                        const fn = a.output_file.split('/').pop();
+                        downloadCell = `<a href="/api/download/${fn}" target="_blank" style="color:#2563EB; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-download"></i> 다운로드</a>`;
                     }
-
-                    const statusColors = {
-                        'completed': 'bg-green-900 text-green-200',
-                        'running': 'bg-blue-900 text-blue-200',
-                        'pending': 'bg-yellow-900 text-yellow-200',
-                        'failed': 'bg-red-900 text-red-200'
-                    };
-
-                    row.innerHTML = `
-                        <td class="px-6 py-4 text-sm text-gray-300">${analysis.file_name || '📝 텍스트'}</td>
-                        <td class="px-6 py-4 text-sm text-gray-400">${formatFileSize(analysis.file_size)}</td>
-                        <td class="px-6 py-4 text-sm">
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColors[analysis.status] || 'bg-gray-700 text-gray-300'}">
-                                ${analysis.status}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-400">${analysis.duration_seconds ? analysis.duration_seconds + '초' : '-'}</td>
-                        <td class="px-6 py-4 text-sm">${downloadCell}</td>
-                        <td class="px-6 py-4 text-sm text-gray-400">${new Date(analysis.created_at).toLocaleString('ko-KR')}</td>
+                    const statusLabel = STATUS_KO[a.status] || a.status;
+                    const statusBadge = STATUS_BADGE[a.status] || 'badge-gray';
+                    const name = a.file_name || '📝 텍스트 입력';
+                    tr.innerHTML = `
+                        <td style="max-width:200px;"><div style="font-weight:500; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</div></td>
+                        <td><span style="color:#6B7280;">${formatFileSize(a.file_size)}</span></td>
+                        <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
+                        <td><span style="color:#374151;">${a.duration_seconds ? a.duration_seconds + '초' : '-'}</span></td>
+                        <td>${downloadCell}</td>
+                        <td><span style="color:#6B7280;">${formatDate(a.created_at)}</span></td>
                     `;
-                    tbody.appendChild(row);
+                    tbody.appendChild(tr);
                 });
-
-                const prevBtn = document.getElementById('prevPageBtn');
-                const nextBtn = document.getElementById('nextPageBtn');
-                const pageInfo = document.getElementById('pageInfo');
-
-                prevBtn.disabled = page === 0;
-                nextBtn.disabled = offset + historyLimit >= historyTotal;
-                pageInfo.textContent = `${offset + 1}-${Math.min(offset + historyLimit, historyTotal)} / 총 ${historyTotal}건`;
-
-            } catch (error) {
-                console.error('이력 로드 실패:', error);
             }
-        }
 
-        async function loadHistory() {
-            historyPage = 0;
-            await loadHistoryPage(0);
-        }
+            document.getElementById('prevPageBtn').disabled = page === 0;
+            document.getElementById('nextPageBtn').disabled = offset + historyLimit >= historyTotal;
+            document.getElementById('pageInfo').textContent = historyTotal > 0
+                ? `${offset + 1}–${Math.min(offset + historyLimit, historyTotal)} / 총 ${historyTotal}건`
+                : '0건';
+        } catch (e) { console.error('이력 로드 실패:', e); }
+    }
 
-        async function loadLogs() {
-            try {
-                const response = await fetch('/api/admin/logs?limit=50');
-                const data = await response.json();
-                const viewer = document.getElementById('log-viewer');
-                viewer.innerHTML = '';
+    async function loadHistory() { await loadHistoryPage(0); }
 
-                data.logs.forEach(log => {
-                    const entry = document.createElement('div');
-                    entry.className = 'mb-2 text-gray-300';
-                    const levelColors = {
-                        'INFO': 'text-blue-400',
-                        'ERROR': 'text-red-400',
-                        'WARNING': 'text-yellow-400',
-                        'DEBUG': 'text-gray-500'
-                    };
-                    const color = levelColors[log.level] || 'text-gray-300';
-                    entry.innerHTML = `<span class="${color}[${log.level}]</span> ${log.timestamp} - ${log.message}`;
-                    viewer.appendChild(entry);
-                });
-            } catch (error) {
-                console.error('로그 로드 실패:', error);
+    // ────── 로그 ──────
+    async function loadLogs() {
+        try {
+            const res = await fetch('/api/admin/logs?limit=50');
+            const data = await res.json();
+            const viewer = document.getElementById('log-viewer');
+            viewer.innerHTML = '';
+            if (!data.logs || data.logs.length === 0) {
+                viewer.innerHTML = '<div style="color:#475569; text-align:center; padding:40px;">로그가 없습니다</div>';
+                return;
             }
-        }
+            const levelClass = { INFO:'log-info', ERROR:'log-error', WARNING:'log-warning', DEBUG:'log-debug' };
+            data.logs.forEach(log => {
+                const div = document.createElement('div');
+                div.className = 'log-entry';
+                const cls = levelClass[log.level] || 'log-debug';
+                div.innerHTML = `<span class="${cls}" style="font-weight:700;">[${log.level}]</span> <span style="color:#94A3B8;">${log.timestamp}</span> <span style="color:#E2E8F0;">${log.message}</span>`;
+                viewer.appendChild(div);
+            });
+            viewer.scrollTop = viewer.scrollHeight;
+        } catch (e) { console.error('로그 로드 실패:', e); }
+    }
 
-        async function loadProfile() {
-            try {
-                const res = await fetch('/api/profile');
-                const data = await res.json();
-                if (data.profile) {
-                    const p = data.profile;
-                    document.getElementById('profile-company').value = p.company_name || '';
-                    document.getElementById('profile-team').value = p.team_name || '';
-                    document.getElementById('profile-tech').value = p.tech_stack || '';
-                    document.getElementById('profile-terms').value = p.custom_terms || '';
-                    document.getElementById('profile-style').value = p.analysis_style || '';
-                    document.getElementById('profile-notes').value = p.extra_notes || '';
-                }
-            } catch (e) {
-                console.error('프로필 로드 실패:', e);
+    // ────── 프로필 ──────
+    async function loadProfile() {
+        try {
+            const res = await fetch('/api/profile');
+            const data = await res.json();
+            if (data.profile) {
+                const p = data.profile;
+                document.getElementById('profile-company').value = p.company_name || '';
+                document.getElementById('profile-team').value = p.team_name || '';
+                document.getElementById('profile-tech').value = p.tech_stack || '';
+                document.getElementById('profile-terms').value = p.custom_terms || '';
+                document.getElementById('profile-style').value = p.analysis_style || '';
+                document.getElementById('profile-notes').value = p.extra_notes || '';
             }
-        }
+        } catch (e) { console.error('프로필 로드 실패:', e); }
+    }
 
-        async function saveProfile(event) {
-            event.preventDefault();
-            const formData = new FormData();
-            formData.append('company_name', document.getElementById('profile-company').value);
-            formData.append('team_name', document.getElementById('profile-team').value);
-            formData.append('tech_stack', document.getElementById('profile-tech').value);
-            formData.append('custom_terms', document.getElementById('profile-terms').value);
-            formData.append('analysis_style', document.getElementById('profile-style').value);
-            formData.append('extra_notes', document.getElementById('profile-notes').value);
-            try {
-                const res = await fetch('/api/profile', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.success) {
-                    const status = document.getElementById('profile-save-status');
-                    status.classList.remove('hidden');
-                    setTimeout(() => status.classList.add('hidden'), 3000);
-                }
-            } catch (e) {
-                alert('저장 중 오류가 발생했습니다.');
+    async function saveProfile(event) {
+        event.preventDefault();
+        const fd = new FormData();
+        fd.append('company_name', document.getElementById('profile-company').value);
+        fd.append('team_name', document.getElementById('profile-team').value);
+        fd.append('tech_stack', document.getElementById('profile-tech').value);
+        fd.append('custom_terms', document.getElementById('profile-terms').value);
+        fd.append('analysis_style', document.getElementById('profile-style').value);
+        fd.append('extra_notes', document.getElementById('profile-notes').value);
+        try {
+            const res = await fetch('/api/profile', { method:'POST', body:fd });
+            const data = await res.json();
+            if (data.success) {
+                const s = document.getElementById('profile-save-status');
+                s.style.display = 'inline-flex';
+                setTimeout(() => s.style.display = 'none', 3000);
             }
-        }
+        } catch (e) { alert('저장 중 오류가 발생했습니다.'); }
+    }
 
-        async function loadSettings() {
-            try {
-                const response = await fetch('/api/admin/settings');
-                const data = await response.json();
-                const container = document.getElementById('settings-content');
-                container.innerHTML = '';
+    // ────── 시스템 설정 ──────
+    async function loadSettings() {
+        try {
+            const res = await fetch('/api/admin/settings');
+            const data = await res.json();
+            const c = document.getElementById('settings-content');
+            c.innerHTML = `
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:4px;">
+                    <div class="card">
+                        <div style="font-size:15px; font-weight:700; color:#111827; margin-bottom:16px;">📡 LLM 설정</div>
+                        <div class="settings-row"><span class="settings-key">모델</span><span class="settings-val">${data.llm.model}</span></div>
+                        <div class="settings-row"><span class="settings-key">모드</span><span class="settings-val">${data.llm.mock_mode ? '테스트(Mock)' : '실제 API'}</span></div>
+                    </div>
+                    <div class="card">
+                        <div style="font-size:15px; font-weight:700; color:#111827; margin-bottom:16px;">📊 분석 설정</div>
+                        <div class="settings-row"><span class="settings-key">최대 파일 크기</span><span class="settings-val">${data.analysis.max_file_size_mb} MB</span></div>
+                        <div class="settings-row"><span class="settings-key">최대 토큰</span><span class="settings-val">${data.analysis.max_document_tokens.toLocaleString()}</span></div>
+                        <div class="settings-row"><span class="settings-key">동시 실행</span><span class="settings-val">${data.analysis.max_concurrent_analyses}개</span></div>
+                    </div>
+                    <div class="card">
+                        <div style="font-size:15px; font-weight:700; color:#111827; margin-bottom:16px;">💾 저장소 설정</div>
+                        <div class="settings-row"><span class="settings-key">보관 기간</span><span class="settings-val">${data.storage.retention_days}일</span></div>
+                        <div class="settings-row"><span class="settings-key">저장 경로</span><span class="settings-val">${data.storage.output_dir}/</span></div>
+                    </div>
+                </div>`;
+        } catch (e) { console.error('설정 로드 실패:', e); }
+    }
 
-                const settingsHtml = `
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-                            <h3 class="text-white font-bold mb-4">📡 LLM 설정</h3>
-                            <table class="w-full text-sm">
-                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">모델</td><td class="py-2 text-gray-200">${data.llm.model}</td></tr>
-                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">모드</td><td class="py-2 text-gray-200">${data.llm.mock_mode ? '모의' : '실제'}</td></tr>
-                            </table>
+    // ────── 헬스 체크 ──────
+    async function loadHealth() {
+        try {
+            const res = await fetch('/api/health/detailed');
+            const data = await res.json();
+            const ok = data.status === 'healthy';
+            document.getElementById('health-content').innerHTML = `
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="card">
+                        <div style="font-size:15px; font-weight:700; color:#111827; margin-bottom:16px;">
+                            ${ok ? '🟢' : '🔴'} 서비스 상태
                         </div>
-                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-                            <h3 class="text-white font-bold mb-4">📊 분석 설정</h3>
-                            <table class="w-full text-sm">
-                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">최대 파일 크기</td><td class="py-2 text-gray-200">${data.analysis.max_file_size_mb}MB</td></tr>
-                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">최대 토큰</td><td class="py-2 text-gray-200">${data.analysis.max_document_tokens}</td></tr>
-                                <tr><td class="py-2 text-gray-400">동시 실행 수</td><td class="py-2 text-gray-200">${data.analysis.max_concurrent_analyses}</td></tr>
-                            </table>
-                        </div>
-                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-                            <h3 class="text-white font-bold mb-4">💾 저장소 설정</h3>
-                            <table class="w-full text-sm">
-                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">보관 기간</td><td class="py-2 text-gray-200">${data.storage.retention_days}일</td></tr>
-                                <tr><td class="py-2 text-gray-400">저장소</td><td class="py-2 text-gray-200">${data.storage.output_dir}</td></tr>
-                            </table>
+                        <div class="settings-row"><span class="settings-key">데이터베이스</span><span style="color:#059669; font-weight:600;">정상</span></div>
+                        <div class="settings-row"><span class="settings-key">LLM 서비스</span><span style="color:#059669; font-weight:600;">${data.services.llm.status}</span></div>
+                        <div class="settings-row"><span class="settings-key">저장소</span><span style="color:#059669; font-weight:600;">정상</span></div>
+                    </div>
+                    <div class="card">
+                        <div style="font-size:15px; font-weight:700; color:#111827; margin-bottom:16px;">💾 리소스 사용량</div>
+                        <div class="settings-row"><span class="settings-key">메모리 사용</span><span class="settings-val">${data.system.memory.rss_mb} MB</span></div>
+                        <div class="settings-row"><span class="settings-key">디스크 사용</span><span class="settings-val">${data.system.disk.used_gb.toFixed(1)} / ${data.system.disk.total_gb.toFixed(1)} GB</span></div>
+                        <div class="settings-row"><span class="settings-key">디스크 사용률</span>
+                            <span class="settings-val" style="color:${data.system.disk.percent > 80 ? '#DC2626' : '#059669'};">${data.system.disk.percent.toFixed(1)}%</span>
                         </div>
                     </div>
-                `;
-                container.innerHTML = settingsHtml;
-            } catch (error) {
-                console.error('설정 로드 실패:', error);
+                </div>`;
+        } catch (e) { console.error('헬스 체크 실패:', e); }
+    }
+
+    // ────── 학습 예시 ──────
+    function showAddExampleForm() { document.getElementById('add-example-form').classList.remove('hidden'); }
+    function hideAddExampleForm() {
+        document.getElementById('add-example-form').classList.add('hidden');
+        ['example-title','example-input','example-output','example-category'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('example-quality').value = '7';
+    }
+
+    async function saveTrainingExample(event) {
+        event.preventDefault();
+        const fd = new FormData();
+        fd.append('title', document.getElementById('example-title').value);
+        fd.append('input_text', document.getElementById('example-input').value);
+        fd.append('output_markdown', document.getElementById('example-output').value);
+        fd.append('category', document.getElementById('example-category').value);
+        fd.append('quality_score', document.getElementById('example-quality').value);
+        try {
+            const res = await fetch('/api/training/examples', { method:'POST', body:fd });
+            if (res.ok) { hideAddExampleForm(); loadTrainingExamples(); }
+            else alert('저장에 실패했습니다.');
+        } catch (e) { alert('오류: ' + e.message); }
+    }
+
+    async function loadTrainingExamples() {
+        try {
+            const res = await fetch('/api/training/examples?limit=50');
+            const data = await res.json();
+            const list = document.getElementById('examples-list');
+            const count = document.getElementById('examples-count');
+            count.textContent = `총 ${data.total || 0}개`;
+
+            if (!data.examples || data.examples.length === 0) {
+                list.innerHTML = '<div style="padding:48px; text-align:center; color:#9CA3AF;"><i class="fas fa-book-open" style="font-size:36px; display:block; margin-bottom:12px; opacity:0.4;"></i><div>등록된 예시가 없습니다</div><div style="font-size:13px; margin-top:4px;">분석 완료 후 "이 분석 기억하기" 버튼을 눌러보세요</div></div>';
+                return;
             }
-        }
-
-        async function loadHealth() {
-            try {
-                const response = await fetch('/api/health/detailed');
-                const data = await response.json();
-                const container = document.getElementById('health-content');
-
-                const statusClass = data.status === 'healthy' ? 'text-green-400' : 'text-red-400';
-                const statusIcon = data.status === 'healthy' ? '✅' : '❌';
-
-                container.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-                            <h3 class="text-white font-bold mb-4 flex items-center gap-2">
-                                <span class="${statusClass}">${statusIcon}</span> 시스템 상태
-                            </h3>
-                            <table class="w-full text-sm">
-                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">데이터베이스</td><td class="py-2"><span class="text-green-400">✓ Healthy</span></td></tr>
-                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">LLM</td><td class="py-2"><span class="text-green-400">✓ ${data.services.llm.status}</span></td></tr>
-                                <tr><td class="py-2 text-gray-400">저장소</td><td class="py-2"><span class="text-green-400">✓ Healthy</span></td></tr>
-                            </table>
+            list.innerHTML = data.examples.map(ex => {
+                const stars = '★'.repeat(Math.round(ex.quality_score / 2)) + '☆'.repeat(5 - Math.round(ex.quality_score / 2));
+                const active = ex.is_active;
+                return `<div style="padding:16px 20px; border-bottom:1px solid #F3F4F6; display:flex; align-items:center; gap:16px;">
+                    <div style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <span style="font-size:15px; font-weight:600; color:#111827;">${ex.title}</span>
+                            ${ex.category ? `<span style="font-size:12px; background:#F3F4F6; color:#6B7280; padding:2px 8px; border-radius:10px;">${ex.category}</span>` : ''}
+                            ${active ? '<span style="font-size:12px; background:#D1FAE5; color:#065F46; padding:2px 8px; border-radius:10px;">활성</span>' : '<span style="font-size:12px; background:#F3F4F6; color:#9CA3AF; padding:2px 8px; border-radius:10px;">비활성</span>'}
                         </div>
-                        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-                            <h3 class="text-white font-bold mb-4">💾 리소스 사용량</h3>
-                            <table class="w-full text-sm">
-                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">메모리</td><td class="py-2 text-gray-200">${data.system.memory.rss_mb}MB</td></tr>
-                                <tr class="border-b border-slate-700"><td class="py-2 text-gray-400">디스크 사용</td><td class="py-2 text-gray-200">${data.system.disk.used_gb.toFixed(2)}GB / ${data.system.disk.total_gb.toFixed(2)}GB</td></tr>
-                                <tr><td class="py-2 text-gray-400">사용률</td><td class="py-2 text-gray-200">${data.system.disk.percent.toFixed(1)}%</td></tr>
-                            </table>
-                        </div>
+                        <div style="font-size:13px; color:#6B7280; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${ex.input_text.substring(0, 80)}...</div>
+                        <div style="font-size:13px; color:#F59E0B; margin-top:2px;">${stars} (${ex.quality_score}/10)</div>
                     </div>
-                `;
-            } catch (error) {
-                console.error('헬스 체크 로드 실패:', error);
-            }
-        }
+                    <div style="display:flex; gap:8px; flex-shrink:0;">
+                        <button class="btn-soft" onclick="toggleExampleStatus('${ex.id}', ${active})">${active ? '비활성화' : '활성화'}</button>
+                        <button class="btn-danger" onclick="deleteTrainingExample('${ex.id}')"><i class="fas fa-trash"></i> 삭제</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (e) { console.error('예시 로드 실패:', e); }
+    }
 
-        // ========== 학습 예시 관리 함수 ==========
+    async function deleteTrainingExample(id) {
+        if (!confirm('이 예시를 삭제하시겠습니까?')) return;
+        try {
+            await fetch(`/api/training/examples/${id}`, { method:'DELETE' });
+            loadTrainingExamples();
+        } catch (e) { alert('삭제 실패'); }
+    }
 
-        function showAddExampleForm() {
-            document.getElementById('add-example-form').classList.remove('hidden');
-        }
+    async function toggleExampleStatus(id, current) {
+        try {
+            const res = await fetch(`/api/training/examples/${id}`, {
+                method:'PUT',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({ is_active: current ? 0 : 1 })
+            });
+            if (res.ok) loadTrainingExamples();
+        } catch (e) { alert('변경 실패'); }
+    }
 
-        function hideAddExampleForm() {
-            document.getElementById('add-example-form').classList.add('hidden');
-            document.getElementById('example-title').value = '';
-            document.getElementById('example-input').value = '';
-            document.getElementById('example-output').value = '';
-            document.getElementById('example-category').value = '';
-            document.getElementById('example-quality').value = '5';
-        }
-
-        async function saveTrainingExample(event) {
-            event.preventDefault();
-
-            const formData = new FormData();
-            formData.append('title', document.getElementById('example-title').value);
-            formData.append('input_text', document.getElementById('example-input').value);
-            formData.append('output_markdown', document.getElementById('example-output').value);
-            formData.append('category', document.getElementById('example-category').value);
-            formData.append('quality_score', document.getElementById('example-quality').value);
-
-            try {
-                const response = await fetch('/api/training/examples', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response.ok) {
-                    alert('예시가 저장되었습니다.');
-                    hideAddExampleForm();
-                    loadTrainingExamples();
-                } else {
-                    alert('예시 저장에 실패했습니다.');
-                }
-            } catch (error) {
-                console.error('예시 저장 오류:', error);
-                alert('오류: ' + error.message);
-            }
-        }
-
-        async function loadTrainingExamples() {
-            try {
-                const response = await fetch('/api/training/examples?limit=50&offset=0');
-                const data = await response.json();
-
-                const listContainer = document.getElementById('examples-list');
-                listContainer.innerHTML = '';
-
-                if (!data.examples || data.examples.length === 0) {
-                    listContainer.innerHTML = '<div class="p-6 text-gray-400">등록된 예시가 없습니다.</div>';
-                    return;
-                }
-
-                data.examples.forEach(example => {
-                    const statusBadge = example.is_active ? '<span class="text-xs bg-green-600 px-2 py-1 rounded">활성</span>' : '<span class="text-xs bg-gray-600 px-2 py-1 rounded">비활성</span>';
-                    const qualityStars = '⭐'.repeat(Math.round(example.quality_score / 2));
-
-                    const exampleHtml = `
-                        <div class="p-4 hover:bg-slate-700 transition-smooth">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <h3 class="text-white font-semibold">${example.title}</h3>
-                                    <p class="text-sm text-gray-400">${example.category || '카테고리 없음'}</p>
-                                </div>
-                                <div class="flex gap-2 items-center">
-                                    <span class="text-yellow-400 text-sm">${qualityStars}</span>
-                                    ${statusBadge}
-                                </div>
-                            </div>
-                            <p class="text-sm text-gray-300 mb-3">입력: ${example.input_text.substring(0, 100)}...</p>
-                            <div class="flex gap-2">
-                                <button onclick="deleteTrainingExample('${example.id}')" class="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded transition-smooth">삭제</button>
-                                <button onclick="toggleExampleStatus('${example.id}', ${example.is_active})" class="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded transition-smooth">${example.is_active ? '비활성화' : '활성화'}</button>
-                            </div>
-                        </div>
-                    `;
-                    listContainer.innerHTML += exampleHtml;
-                });
-            } catch (error) {
-                console.error('예시 로드 실패:', error);
-                document.getElementById('examples-list').innerHTML = '<div class="p-6 text-red-400">예시 로드 실패</div>';
-            }
-        }
-
-        async function deleteTrainingExample(exampleId) {
-            if (!confirm('이 예시를 삭제하시겠습니까?')) return;
-
-            try {
-                const response = await fetch(`/api/training/examples/${exampleId}`, {
-                    method: 'DELETE'
-                });
-
-                if (response.ok) {
-                    alert('예시가 삭제되었습니다.');
-                    loadTrainingExamples();
-                } else {
-                    alert('예시 삭제에 실패했습니다.');
-                }
-            } catch (error) {
-                console.error('예시 삭제 오류:', error);
-                alert('오류: ' + error.message);
-            }
-        }
-
-        async function toggleExampleStatus(exampleId, currentStatus) {
-            try {
-                const response = await fetch(`/api/training/examples/${exampleId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        is_active: currentStatus ? 0 : 1
-                    })
-                });
-
-                if (response.ok) {
-                    alert('상태가 변경되었습니다.');
-                    loadTrainingExamples();
-                } else {
-                    alert('상태 변경에 실패했습니다.');
-                }
-            } catch (error) {
-                console.error('상태 변경 오류:', error);
-                alert('오류: ' + error.message);
-            }
-        }
-
-        // Auto-refresh every 5 seconds
-        setInterval(() => {
-            if (document.getElementById('section-dashboard') && !document.getElementById('section-dashboard').classList.contains('hidden')) {
-                loadDashboard();
-            }
-        }, 5000);
-
-        // Initial load
-        loadDashboard();
-    </script>
+    // ────── 자동 갱신 & 초기 로드 ──────
+    setInterval(() => {
+        if (!document.getElementById('section-dashboard').classList.contains('hidden')) loadDashboard();
+    }, 5000);
+    loadDashboard();
+</script>
 </body>
 </html>
