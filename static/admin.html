@@ -130,12 +130,12 @@
                 <div class="stat-card" style="background:linear-gradient(135deg,#059669,#10B981);">
                     <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">완료</div>
                     <div id="stat-completed" style="font-size:36px; font-weight:800;">0</div>
-                    <div style="font-size:12px; opacity:0.7; margin-top:4px;">성공 완료</div>
+                    <div style="font-size:12px; opacity:0.7; margin-top:4px;">정상 완료</div>
                 </div>
                 <div class="stat-card" style="background:linear-gradient(135deg,#D97706,#F59E0B);">
                     <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">진행 중</div>
                     <div id="stat-pending" style="font-size:36px; font-weight:800;">0</div>
-                    <div style="font-size:12px; opacity:0.7; margin-top:4px;">처리 중</div>
+                    <div style="font-size:12px; opacity:0.7; margin-top:4px;">분석 중</div>
                 </div>
                 <div class="stat-card" style="background:linear-gradient(135deg,#DC2626,#EF4444);">
                     <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">실패</div>
@@ -157,7 +157,7 @@
                     <div style="font-size:12px; color:#9CA3AF; margin-top:4px;">분석당 평균</div>
                 </div>
                 <div class="card">
-                    <div style="font-size:13px; color:#6B7280; margin-bottom:4px;">동시 실행</div>
+                    <div style="font-size:13px; color:#6B7280; margin-bottom:4px;">동시 처리</div>
                     <div style="font-size:32px; font-weight:800; color:#D97706;"><span id="queue-running">0</span><span style="font-size:20px; color:#9CA3AF;">/<span id="queue-max">3</span></span></div>
                     <div style="font-size:12px; color:#9CA3AF; margin-top:4px;">현재 / 최대</div>
                 </div>
@@ -169,7 +169,7 @@
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
                 <div>
                     <div class="section-title">분석 이력</div>
-                    <div class="section-desc">모든 분석 작업의 기록을 확인하세요</div>
+                    <div class="section-desc">지금까지 수행한 분석 작업 내역을 확인하세요</div>
                 </div>
                 <button class="btn-secondary" onclick="loadHistory()">
                     <i class="fas fa-sync"></i> 새로고침
@@ -335,7 +335,7 @@
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
                 <div>
                     <div class="section-title">시스템 로그</div>
-                    <div class="section-desc">최근 50건의 로그를 확인하세요</div>
+                    <div class="section-desc">최근 로그 50건을 확인하세요</div>
                 </div>
                 <button class="btn-secondary" onclick="loadLogs()">
                     <i class="fas fa-sync"></i> 새로고침
@@ -621,7 +621,7 @@
             count.textContent = `총 ${data.total || 0}개`;
 
             if (!data.examples || data.examples.length === 0) {
-                list.innerHTML = '<div style="padding:48px; text-align:center; color:#9CA3AF;"><i class="fas fa-book-open" style="font-size:36px; display:block; margin-bottom:12px; opacity:0.4;"></i><div>등록된 예시가 없습니다</div><div style="font-size:13px; margin-top:4px;">분석 완료 후 "이 분석 기억하기" 버튼을 눌러보세요</div></div>';
+                list.innerHTML = '<div style="padding:48px; text-align:center; color:#9CA3AF;"><i class="fas fa-book-open" style="font-size:36px; display:block; margin-bottom:12px; opacity:0.4;"></i><div>등록된 예시가 없습니다</div><div style="font-size:13px; margin-top:4px;">분석 완료 후 "이 분석 저장하기" 버튼을 눌러보세요</div></div>';
                 return;
             }
             list.innerHTML = data.examples.map(ex => {
