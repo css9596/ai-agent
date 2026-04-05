@@ -41,12 +41,13 @@ services:
     volumes:
       - ollama_models:/root/.ollama
     # Ollama 서비스 헬스 체크
+    # ⚠️ 주의: 첫 실행 시 모델 다운로드(10-20분) 필요하므로 start_period를 충분히 길게 설정
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 60s
+      retries: 10
+      start_period: 300s  # 첫 실행: 5분 대기 후 헬스 체크 시작 (모델 다운로드 중)
     restart: unless-stopped
     networks:
       - ai-network

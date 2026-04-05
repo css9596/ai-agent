@@ -197,6 +197,14 @@ context = agent.run(context, feedback=feedback)  # feedback 파라미터 추가
 - `_mock_json_response()`, `_mock_text_response()` 에서 시나리오별 응답 제공
 - 성능 테스트 & CI/CD에 필수
 
+### 5. **Ollama 헬스 체크 (docker-compose.yml)**
+- **문제**: 첫 실행 시 Ollama는 모델 다운로드(5-20분)를 수행하는데, `start_period: 60s`는 너무 짧음
+- **증상**: 컨테이너 상태가 "unhealthy"로 표시되지만 실제로는 정상 작동 (모델 다운로드 중)
+- **해결책**:
+  - `start_period: 300s` (5분)로 변경 → 모델 다운로드가 시작될 때까지 헬스 체크 보류
+  - `retries: 10`으로 증가 → 보수적인 재시도 (5분 + 10 * 30초 = 8분 대기)
+  - 첫 실행 후 모델이 캐시되면 10-30초 내 healthy 상태 도달
+
 ### 5. **SSE (Server-Sent Events) 실시간 모니터링**
 - 분석 중 백그라운드 태스크가 진행상황을 `emit()` 콜백으로 전송
 - 클라이언트가 EventSource로 수신 (static/index.html 489-575줄)
