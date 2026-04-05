@@ -2,6 +2,7 @@ import json
 from typing import Any, Dict
 
 from utils.claude_client import ClaudeClient
+from utils.context_builder import KOREAN_INSTRUCTION
 
 
 class ImpactAnalyzerAgent:
@@ -18,6 +19,7 @@ class ImpactAnalyzerAgent:
             f"\n\n[이전 분석 피드백 - 반드시 반영하세요]\n{feedback}" if feedback else ""
         )
         prompt = (
+            f"{KOREAN_INSTRUCTION}\n\n"
             "기획/개발 분석 결과를 바탕으로 Java/JSP/jQuery/MyBatis 프로젝트의 영향도를 분석하세요.\n"
             "각 레이어(Controller/Service/DAO/Mapper/JSP/JS)별로 변경·신규 파일과 메서드를 구체적으로 명시하세요.\n"
             "반드시 JSON으로만 답변하세요.\n"
@@ -42,7 +44,8 @@ class ImpactAnalyzerAgent:
         result = self.client.request_json(
             system_prompt=(
                 "You are a senior impact analysis agent "
-                "specializing in Java/JSP/MyBatis enterprise systems."
+                "specializing in Java/JSP/MyBatis enterprise systems. "
+                "Always respond in Korean only."
             ),
             user_prompt=prompt,
         )
