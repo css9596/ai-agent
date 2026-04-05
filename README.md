@@ -590,9 +590,10 @@ EOF
 
 | 문서 | 대상 | 내용 |
 |-----|------|------|
-| **OFFLINE_DEPLOYMENT.md** | 관리자 | Docker Compose 기반 오프라인 배포 완벽 가이드 |
-| **WINDOWS_EXE_GUIDE.md** | 사용자 | Windows exe 사용 설명서 (설치, 실행, 문제 해결) |
 | **WINDOWS_DEPLOYMENT_ACTUAL.md** | 개발자 | Windows PC에서 exe 빌드 및 배포 단계별 가이드 |
+| **WINDOWS_EXE_GUIDE.md** | 사용자 | Windows exe 사용 설명서 (설치, 실행, 문제 해결) |
+| **OFFLINE_ENVIRONMENT_SETUP.md** | 관리자 | 폐쇄망 환경 완전 셋팅 (Python, Docker 오프라인 설치) ⭐ |
+| **OFFLINE_DEPLOYMENT.md** | 관리자 | Docker Compose 기반 오프라인 배포 완벽 가이드 |
 | **SIMULATION_GUIDE.md** | 개발자 | 배포 과정을 직접 테스트하는 시뮬레이션 체크리스트 |
 | **PROJECT_STRUCTURE.md** | 개발자 | 폴더 구조 상세 설명 및 파일 수정 가이드 |
 | **EXE_BUILD_EXPLAINED.md** | 개발자 | exe 빌드 개념 설명 (왜 온라인 1회일까?) |
