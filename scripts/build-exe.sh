@@ -95,7 +95,10 @@ if [ -f "dist/AI분석서생성" ] || [ -f "dist/AI분석서생성.exe" ]; then
     FAILED_FILES=()
     for file in "${FILES_TO_COPY[@]}"; do
         if [ -f "$file" ]; then
-            if cp "$file" dist/ 2>/dev/null; then
+            # Remove destination if exists
+            rm -f "dist/$file" 2>/dev/null
+
+            if cp "$file" "dist/$file" 2>/dev/null; then
                 echo "  ✓ $file"
             else
                 FAILED_FILES+=("$file")
@@ -115,7 +118,11 @@ if [ -f "dist/AI분석서생성" ] || [ -f "dist/AI분석서생성.exe" ]; then
         if [ -f "$ymlFile" ]; then
             YML_FOUND=1
             ymlFileName=$(basename "$ymlFile")
-            if cp "$ymlFile" dist/ 2>/dev/null; then
+
+            # Remove destination if exists
+            rm -f "dist/$ymlFileName" 2>/dev/null
+
+            if cp "$ymlFile" "dist/$ymlFileName" 2>/dev/null; then
                 echo "  ✓ $ymlFileName"
             else
                 FAILED_FILES+=("$ymlFileName")
@@ -131,7 +138,10 @@ if [ -f "dist/AI분석서생성" ] || [ -f "dist/AI분석서생성.exe" ]; then
     FOLDERS_TO_COPY=("scripts" "agents" "utils" "static")
     for folder in "${FOLDERS_TO_COPY[@]}"; do
         if [ -d "$folder" ]; then
-            if cp -r "$folder" dist/ 2>/dev/null; then
+            # Remove destination if exists
+            rm -rf "dist/$folder" 2>/dev/null
+
+            if cp -r "$folder" "dist/$folder" 2>/dev/null; then
                 echo "  ✓ $folder/"
             else
                 FAILED_FILES+=("$folder")

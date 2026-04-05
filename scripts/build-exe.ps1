@@ -110,17 +110,31 @@ if (Test-Path $exePath) {
     $failedFiles = @()
     foreach ($file in $filesToCopy) {
         $fullPath = Join-Path $projectDir $file
+        $destPath = Join-Path ".\dist" $file
+
         if (Test-Path $fullPath) {
             try {
-                Copy-Item -Path $fullPath -Destination ".\dist\" -Force -ErrorAction Stop
+                # Remove destination if exists
+                if (Test-Path $destPath) {
+                    Remove-Item -Path $destPath -Force -ErrorAction SilentlyContinue
+                }
+
+                # Try using .NET File.Copy first
+                [System.IO.File]::Copy($fullPath, $destPath, $true)
                 Write-Host "  ✓ $file" -ForegroundColor Gray
             } catch {
-                $failedFiles += $file
-                Write-Host "  ✗ $file (failed)" -ForegroundColor Red
+                # Fallback to Copy-Item if .NET fails
+                try {
+                    Copy-Item -Path $fullPath -Destination $destPath -Force -ErrorAction Stop
+                    Write-Host "  ✓ $file" -ForegroundColor Gray
+                } catch {
+                    $failedFiles += $file
+                    Write-Host "  ✗ $file (failed: $($_.Exception.Message))" -ForegroundColor Red
+                }
             }
         } else {
             $failedFiles += $file
-            Write-Host "  ✗ $file (not found)" -ForegroundColor Red
+            Write-Host "  ✗ $file (not found at $fullPath)" -ForegroundColor Red
         }
     }
 
@@ -135,13 +149,26 @@ if (Test-Path $exePath) {
         Write-Host "  (No yml files found)" -ForegroundColor Gray
     } else {
         foreach ($ymlFile in $ymlFiles) {
+            $destPath = Join-Path ".\dist" $ymlFile.Name
+
             try {
-                $destPath = Join-Path ".\dist" $ymlFile.Name
-                Copy-Item -Path $ymlFile.FullName -Destination $destPath -Force -ErrorAction Stop
+                # Remove destination if exists
+                if (Test-Path $destPath) {
+                    Remove-Item -Path $destPath -Force -ErrorAction SilentlyContinue
+                }
+
+                # Try using .NET File.Copy first
+                [System.IO.File]::Copy($ymlFile.FullName, $destPath, $true)
                 Write-Host "  ✓ $($ymlFile.Name)" -ForegroundColor Gray
             } catch {
-                $failedFiles += $ymlFile.Name
-                Write-Host "  ✗ $($ymlFile.Name) (failed: $_)" -ForegroundColor Red
+                # Fallback to Copy-Item if .NET fails
+                try {
+                    Copy-Item -Path $ymlFile.FullName -Destination $destPath -Force -ErrorAction Stop
+                    Write-Host "  ✓ $($ymlFile.Name)" -ForegroundColor Gray
+                } catch {
+                    $failedFiles += $ymlFile.Name
+                    Write-Host "  ✗ $($ymlFile.Name) (failed: $($_.Exception.Message))" -ForegroundColor Red
+                }
             }
         }
     }
@@ -150,17 +177,24 @@ if (Test-Path $exePath) {
     $foldersToCopy = @("scripts", "agents", "utils", "static")
     foreach ($folder in $foldersToCopy) {
         $fullPath = Join-Path $projectDir $folder
+        $destFolder = Join-Path ".\dist" $folder
+
         if (Test-Path $fullPath) {
             try {
-                Copy-Item -Path $fullPath -Destination ".\dist\$folder" -Recurse -Force -ErrorAction Stop
+                # Remove destination if exists
+                if (Test-Path $destFolder) {
+                    Remove-Item -Path $destFolder -Recurse -Force -ErrorAction SilentlyContinue
+                }
+
+                Copy-Item -Path $fullPath -Destination $destFolder -Recurse -Force -ErrorAction Stop
                 Write-Host "  ✓ $folder/" -ForegroundColor Gray
             } catch {
                 $failedFiles += $folder
-                Write-Host "  ✗ $folder/ (failed)" -ForegroundColor Red
+                Write-Host "  ✗ $folder/ (failed: $($_.Exception.Message))" -ForegroundColor Red
             }
         } else {
             $failedFiles += $folder
-            Write-Host "  ✗ $folder/ (not found)" -ForegroundColor Red
+            Write-Host "  ✗ $folder/ (not found at $fullPath)" -ForegroundColor Red
         }
     }
 
