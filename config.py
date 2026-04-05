@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     RETENTION_DAYS: int = 30  # 분석 결과 보관 기간 (일)
 
     # 데이터베이스
-    DATABASE_PATH: str = "analysis_history.db"
+    DATABASE_PATH: str = "data/analysis_history.db"
 
     # 로깅
     LOG_LEVEL: str = "INFO"

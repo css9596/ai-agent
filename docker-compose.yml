@@ -15,8 +15,8 @@ services:
       - ./logs:/app/logs
       # 프로젝트 저장 (Phase 6)
       - ./projects:/app/projects
-      # 데이터베이스 영구 저장
-      - analysis_db:/app/analysis_history.db
+      # 데이터베이스 영구 저장 (디렉토리로 변경)
+      - ./data:/app/data
     # Ollama 서비스가 시작되기만 하면 app도 시작 (app이 올라가면서 올라마 준비 대기)
     depends_on:
       ollama:
@@ -56,9 +56,6 @@ services:
 volumes:
   # Ollama 모델 데이터
   ollama_models:
-    driver: local
-  # 분석 이력 데이터베이스
-  analysis_db:
     driver: local
 
 # 커스텀 네트워크 (app과 ollama가 내부 통신용)
