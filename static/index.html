@@ -24,6 +24,16 @@
             background-clip: text;
         }
 
+        /* Navigation header styling */
+        nav {
+            background-color: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(12px);
+        }
+
+        nav.sticky {
+            background-color: rgba(255, 255, 255, 0.95);
+        }
+
         /* Animations */
         @keyframes float {
             0%, 100% { transform: translateY(0px); }
@@ -59,7 +69,7 @@
 <body class="bg-gradient-to-br from-slate-50 via-white to-slate-100 text-gray-900">
     <div class="flex flex-col min-h-screen">
         <!-- Navigation Header -->
-        <nav class="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-gray-200">
+        <nav class="sticky top-0 z-50 border-b border-gray-200">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center h-16">
                     <div class="flex items-center gap-3">
