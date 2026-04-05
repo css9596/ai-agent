@@ -39,17 +39,30 @@ class Orchestrator:
         """입력 문서를 분석해 실행할 에이전트를 선택한다."""
         self.emit("status", {"agent": "orchestrator", "message": "에이전트 선택 중..."})
         prompt = (
-            "입력 문서를 분석해 필요한 전문가 에이전트를 선택하세요.\n"
-            "사용 가능한 에이전트: planner, developer, impact_analyzer, reviewer, documenter\n"
+            "아래 입력 문서를 분석하여 필요한 에이전트만 선택하세요.\n"
+            "불필요한 에이전트는 제외해서 분석 시간을 단축하세요.\n\n"
+            "사용 가능한 에이전트와 호출 기준:\n"
+            "- planner: 기능/비기능 요구사항 추출 필요 시 (거의 항상 필요)\n"
+            "- developer: 기술 설계, DB 설계, API 설계 필요 시\n"
+            "- impact_analyzer: 기존 시스템 파일/클래스/쿼리 영향도 분석 필요 시 (수정/추가 요청)\n"
+            "- reviewer: 보안·성능·일정 리스크 검토 필요 시 (중요도 높은 기능)\n\n"
+            "quality_checker와 documenter는 항상 자동 포함됩니다.\n\n"
+            "예시:\n"
+            '- "간단한 버튼 색상 변경" → ["planner"]\n'
+            '- "로그인 기능 추가" → ["planner", "developer", "reviewer"]\n'
+            '- "기존 게시판에 파일첨부 추가" → ["planner", "developer", "impact_analyzer", "reviewer"]\n\n'
             "반드시 JSON으로만 답변하세요.\n"
-            '형식: {"selected_agents": [...], "reason": "..."}\n\n'
+            '형식: {"selected_agents": [...], "reason": "선택 이유 한 줄"}\n\n'
             f"[입력 문서]\n{document}"
         )
         selection = self.client.request_json(
-            system_prompt="You are an orchestrator agent.",
+            system_prompt="You are an orchestrator agent. Always respond in Korean only.",
             user_prompt=prompt,
         )
-        selected_agents = selection.get("selected_agents", [])
+        selected_agents = selection.get("selected_agents", list(ANALYSIS_ORDER))
+        # 빈 결과 방어 처리
+        if not selected_agents:
+            selected_agents = list(ANALYSIS_ORDER)
         # quality_checker, documenter는 항상 포함
         for required in ("quality_checker", "documenter"):
             if required not in selected_agents:
@@ -69,8 +82,21 @@ class Orchestrator:
         context["profile_context"] = db.get_all_profile()
         context["history_context"] = db.get_recent_context_analyses(limit=3)
 
-        # 1단계: 분석 에이전트 순차 실행
-        for agent_name in ANALYSIS_ORDER:
+        # 선택된 에이전트를 실행 순서대로 정렬 (quality_checker, documenter 제외)
+        analysis_agents = [
+            a for a in ANALYSIS_ORDER
+            if a in selection.get("selected_agents", ANALYSIS_ORDER)
+        ]
+        if not analysis_agents:
+            analysis_agents = list(ANALYSIS_ORDER)
+
+        self.emit("status", {
+            "agent": "orchestrator",
+            "message": f"실행 에이전트: {', '.join(analysis_agents)} → quality_checker → documenter",
+        })
+
+        # 1단계: 선택된 분석 에이전트 순차 실행
+        for agent_name in analysis_agents:
             context = self._run_agent(agent_name, context, examples=examples)
 
         # 2단계: 품질 검사 루프 (최대 MAX_RETRIES회 재시도)
@@ -97,8 +123,8 @@ class Orchestrator:
                 })
                 break
 
-            # 재시도: 낮은 점수 에이전트만 피드백과 함께 재실행
-            retry_agents = qc.get("retry_agents", [])
+            # 재시도: 낮은 점수 에이전트만 피드백과 함께 재실행 (실행된 에이전트 범위 내에서)
+            retry_agents = [a for a in qc.get("retry_agents", []) if a in analysis_agents]
             self.emit("status", {
                 "agent": "quality_checker",
                 "message": (
@@ -110,15 +136,15 @@ class Orchestrator:
             # 재시도 에이전트별 피드백 상세 표시
             self._emit_retry_feedback(retry_agents, agent_scores)
 
-            for agent_name in ANALYSIS_ORDER:
+            for agent_name in analysis_agents:
                 if agent_name not in retry_agents:
                     continue
                 feedback = agent_scores.get(agent_name, {}).get("feedback", "")
                 context = self._run_agent(agent_name, context, feedback=feedback, examples=examples)
 
-                # 재실행된 에이전트 이후 에이전트들도 순서대로 다시 실행
-                idx = ANALYSIS_ORDER.index(agent_name)
-                for downstream in ANALYSIS_ORDER[idx + 1:]:
+                # 재실행된 에이전트 이후 에이전트들도 순서대로 다시 실행 (선택된 범위 내)
+                idx = analysis_agents.index(agent_name)
+                for downstream in analysis_agents[idx + 1:]:
                     context = self._run_agent(downstream, context, examples=examples)
                 break  # 가장 앞 순서 에이전트 1개씩 처리
 
@@ -147,7 +173,7 @@ class Orchestrator:
         })
 
         # 각 에이전트의 점수와 피드백 표시
-        for agent_name in ANALYSIS_ORDER:
+        for agent_name in list(agent_scores.keys()):
             if agent_name not in agent_scores:
                 continue
 
