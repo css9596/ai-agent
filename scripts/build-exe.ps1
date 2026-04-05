@@ -27,21 +27,22 @@ if ($null -eq $pythonPath) {
 Write-Host "OK: Python found at $($pythonPath.Source)" -ForegroundColor Green
 Write-Host ""
 
-# Step 2: Check PyInstaller
+# Step 2: Install PyInstaller
 Write-Host "[2/4] Installing PyInstaller..." -ForegroundColor Blue
+Write-Host "  Installing from pip..." -ForegroundColor Yellow
 
-python -c "import PyInstaller" 2>$null
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "OK: PyInstaller already installed" -ForegroundColor Green
-} else {
-    Write-Host "  Installing PyInstaller..." -ForegroundColor Yellow
-    python -m pip install pyinstaller --quiet
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Failed to install PyInstaller" -ForegroundColor Red
-        exit 1
-    }
-    Write-Host "OK: PyInstaller installed" -ForegroundColor Green
+python -m pip install pyinstaller --quiet
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: Failed to install PyInstaller" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "IMPORTANT: You may be using Windows Store Python" -ForegroundColor Red
+    Write-Host "This version has limitations and cannot run properly." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Solution: Install official Python from https://www.python.org/downloads/" -ForegroundColor Yellow
+    Write-Host "Then uninstall Windows Store Python from Settings > Apps" -ForegroundColor Yellow
+    exit 1
 }
+Write-Host "OK: PyInstaller installed" -ForegroundColor Green
 Write-Host ""
 
 # Step 3: Set working directory
