@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 필수 디렉토리 생성
-RUN mkdir -p output temp_uploads logs projects
+RUN mkdir -p output temp_uploads logs projects data
 
 # 포트 노출
 EXPOSE 8000
