@@ -1,12 +1,23 @@
-# 간단한 Python 기반 Dockerfile
 FROM python:3.9-slim
 
 WORKDIR /app
 
+# weasyprint 시스템 의존성 (PDF 내보내기용)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libpangocairo-1.0-0 \
+    libcairo2 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # requirements.txt 복사
 COPY requirements.txt .
 
-# Python 패키지 설치 (pip로 모든 의존성 처리)
+# Python 패키지 설치
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 앱 코드 복사
