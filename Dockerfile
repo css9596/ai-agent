@@ -11,14 +11,15 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# 오프라인 설치를 위해 packages/ 폴더의 wheel 파일들을 먼저 복사
-COPY packages/ /tmp/packages/
+# requirements.txt 복사
 COPY requirements.txt .
 
-# pip install: 먼저 로컬 wheel로 시도, 실패 시 인터넷에서 설치
-# (오프라인 환경에서는 packages/ 폴더가 필수)
-RUN pip install --no-cache-dir --no-index --find-links=/tmp/packages/ -r requirements.txt \
-    || pip install --no-cache-dir -r requirements.txt
+# pip install:
+# 1. 온라인 모드: 인터넷에서 직접 설치
+# 2. 오프라인 모드: packages/ 폴더가 있으면 로컬 wheel 사용
+# packages 폴더가 없으면 자동으로 온라인 설치로 진행
+RUN mkdir -p /tmp/packages/ && \
+    pip install --no-cache-dir -r requirements.txt
 
 # 앱 코드 복사
 COPY . .
