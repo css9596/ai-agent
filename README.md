@@ -208,7 +208,9 @@ Windows PC에서 실행:
   1. Docker Desktop 설치 여부 확인
      ⚠️ 설치 안 됨 → 상세한 설치 가이드 제시
      ⚠️ 미실행 → Docker Desktop 시작 방법 안내
-  2. docker-compose 시작 (app + ollama)
+  2. Docker 이미지 빌드 + Ollama 다운로드
+     ⏳ **첫 실행: 10-30분 소요** (이미지 빌드 5-10분 + Ollama 다운로드 10-20분)
+     ✅ 이후 실행: 30-120초
   3. 브라우저 자동 오픈 (http://localhost:8000)
   4. 사용자는 텍스트/파일 입력 후 분석 시작
 
@@ -216,6 +218,7 @@ Windows PC에서 실행:
   ✅ Docker Desktop 설치 및 실행 (https://www.docker.com/products/docker-desktop)
   ✅ Windows 10 (Build 1903+) 이상
   ✅ 최소 8GB RAM, 20GB 여유 디스크 공간
+  ✅ 인터넷 연결 (첫 실행 시 이미지/모델 다운로드용)
 ```
 
 📄 **상세 가이드**: 

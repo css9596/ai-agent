@@ -163,18 +163,20 @@ def stop_existing_containers():
         print_warning(f"기존 컨테이너 종료 중 오류: {e}")
 
 def start_docker_compose():
-    """Docker Compose 시작"""
+    """Docker Compose 시작 (이미지 빌드 포함)"""
     app_dir = get_app_directory()
 
     try:
         print("  Docker Compose 시작 중...")
+        print(f"  (첫 실행: 이미지 빌드 + Ollama 다운로드로 10-30분 소요)")
 
+        # --build 옵션으로 이미지 빌드 (첫 실행 시 필수)
         result = subprocess.run(
-            ["docker-compose", "up", "-d"],
+            ["docker-compose", "up", "-d", "--build"],
             cwd=app_dir,
             capture_output=True,
             text=True,
-            timeout=300  # 첫 실행 시 Ollama 이미지 다운로드 (5-20분)
+            timeout=1800  # 첫 실행: 이미지 빌드(5-10분) + Ollama 다운로드(10-20분) = 30분
         )
 
         if result.returncode == 0:
@@ -184,14 +186,16 @@ def start_docker_compose():
             print_error(f"Docker Compose 시작 실패:\n{result.stderr}")
             return False
     except subprocess.TimeoutExpired:
-        print_error("Docker Compose 시작 타임아웃 (1분 초과)")
+        print_error("Docker Compose 시작 타임아웃 (30분 초과)")
+        print_warning("백그라운드에서 계속 실행 중일 수 있습니다")
+        print("확인: docker-compose logs -f")
         return False
     except Exception as e:
         print_error(f"Docker Compose 시작 오류: {e}")
         return False
 
-def wait_for_server(max_attempts=20):
-    """서버 시작 대기"""
+def wait_for_server(max_attempts=600):
+    """서버 시작 대기 (최대 10분)"""
     import socket
 
     print("  서버 시작 대기 중...", end="", flush=True)
