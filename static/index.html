@@ -16,6 +16,14 @@
         .gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         .gradient-secondary { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
 
+        /* Gradient text */
+        .text-gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
         /* Animations */
         @keyframes float {
             0%, 100% { transform: translateY(0px); }
@@ -55,8 +63,8 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center h-16">
                     <div class="flex items-center gap-3">
-                        <i class="fas fa-magic text-2xl gradient-primary bg-clip-text text-transparent"></i>
-                        <h1 class="text-2xl font-bold bg-clip-text text-transparent gradient-primary">AI 분석서 생성기</h1>
+                        <i class="fas fa-magic text-2xl text-gradient-primary"></i>
+                        <h1 class="text-2xl font-bold text-gradient-primary">AI 분석서 생성기</h1>
                     </div>
                     <div class="flex items-center gap-2">
                         <!-- Tab Navigation (Phase 6) -->
