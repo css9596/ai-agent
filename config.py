@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     MAX_PROJECT_SIZE_MB: int = 500  # 프로젝트 ZIP 최대 크기
 
     # 분석 관리
-    MAX_CONCURRENT_ANALYSES: int = 3  # 동시 분석 최대 개수
+    MAX_CONCURRENT_ANALYSES: int = 1  # 동시 분석 최대 개수 (한 번에 하나씩 순차 실행)
     ANALYSIS_TIMEOUT_MINUTES: int = 30  # 분석 타임아웃 (분)
     RETENTION_DAYS: int = 30  # 분석 결과 보관 기간 (일)
 

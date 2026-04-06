@@ -360,12 +360,10 @@ async def run_analysis(job_id: str, analysis_id: str, document: str):
         job_contexts[job_id] = context  # 채팅 정제용 컨텍스트 저장
         job_to_analysis[job_id] = analysis_id  # DB 저장용 매핑
 
-        # 출력 파일 찾기
-        output_dir = Path(settings.OUTPUT_DIR)
-        files = sorted(output_dir.glob("analysis_*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
-        if files:
-            output_file = files[0].name
-            db.update_analysis_success(analysis_id, str(files[0]))
+        # 출력 파일 경로는 orchestrator context에 이미 저장되어 있음
+        output_file_path = context.get("output_file")
+        if output_file_path and Path(output_file_path).exists():
+            db.update_analysis_success(analysis_id, output_file_path)
             logger.analysis_complete(analysis_id, 0)
         else:
             raise Exception("출력 파일을 찾을 수 없습니다")

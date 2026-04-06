@@ -11,7 +11,7 @@ from agents.quality_checker import MAX_RETRIES, QUALITY_THRESHOLD, QualityChecke
 from agents.reviewer import ReviewerAgent
 from utils.claude_client import ClaudeClient
 from utils.context_builder import KOREAN_INSTRUCTION
-from database import Database
+from database import db
 
 # 분석 에이전트 실행 순서 (documenter, quality_checker 제외)
 ANALYSIS_ORDER = ["planner", "developer", "impact_analyzer", "reviewer"]
@@ -79,7 +79,6 @@ class Orchestrator:
         context["orchestrator"] = selection
 
         # AI 비서 컨텍스트 로드 (프로필 + 히스토리 + 학습 예시)
-        db = Database()
         examples = db.get_training_examples(limit=2)
         context["profile_context"] = db.get_all_profile()
         context["history_context"] = db.get_recent_context_analyses(limit=3)

@@ -41,7 +41,7 @@ class ReviewerAgent:
             f"{examples_section}"
             f"{feedback_section}"
         )
-        result = self.client.request_json(system_prompt="You are a strict software reviewer agent.", user_prompt=prompt)
+        result = self.client.request_json(system_prompt="You are a strict software reviewer agent. Always respond in Korean only.", user_prompt=prompt)
         context["reviewer"] = result
         return context
 

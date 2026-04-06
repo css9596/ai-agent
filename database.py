@@ -19,6 +19,10 @@ class Database:
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
 
         with sqlite3.connect(self.db_path) as conn:
+            # WAL 모드: 읽기/쓰기 동시성 향상, 동기화 부하 감소
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+
             cursor = conn.cursor()
 
             # 분석 이력 테이블
@@ -162,26 +166,15 @@ class Database:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             now = datetime.now()
+            # duration을 SQL에서 직접 계산 (SELECT 왕복 제거)
             cursor.execute("""
                 UPDATE analyses
                 SET status = 'completed',
                     output_file = ?,
-                    completed_at = ?
+                    completed_at = ?,
+                    duration_seconds = CAST((julianday(?) - julianday(started_at)) * 86400 AS INTEGER)
                 WHERE id = ?
-            """, (output_file, now, analysis_id))
-
-            # duration 계산
-            cursor.execute("""
-                SELECT started_at FROM analyses WHERE id = ?
-            """, (analysis_id,))
-            result = cursor.fetchone()
-            if result and result[0]:
-                started = datetime.fromisoformat(result[0])
-                duration = int((now - started).total_seconds())
-                cursor.execute("""
-                    UPDATE analyses SET duration_seconds = ? WHERE id = ?
-                """, (duration, analysis_id))
-
+            """, (output_file, now, now, analysis_id))
             conn.commit()
 
     def update_analysis_error(
@@ -275,40 +268,29 @@ class Database:
             return deleted_count
 
     def get_statistics(self) -> Dict[str, Any]:
-        """통계 조회"""
+        """통계 조회 (단일 쿼리로 모든 카운트 처리)"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-
-            # 총 분석 수
-            cursor.execute("SELECT COUNT(*) FROM analyses")
-            total = cursor.fetchone()[0]
-
-            # 성공한 분석
-            cursor.execute("SELECT COUNT(*) FROM analyses WHERE status = 'completed'")
-            completed = cursor.fetchone()[0]
-
-            # 실패한 분석
-            cursor.execute("SELECT COUNT(*) FROM analyses WHERE status = 'failed'")
-            failed = cursor.fetchone()[0]
-
-            # 진행 중인 분석
-            cursor.execute("SELECT COUNT(*) FROM analyses WHERE status = 'running'")
-            running = cursor.fetchone()[0]
-
-            # 평균 분석 시간
             cursor.execute("""
-                SELECT AVG(duration_seconds) FROM analyses
-                WHERE status = 'completed' AND duration_seconds > 0
+                SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                    SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+                    SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running,
+                    AVG(CASE WHEN status = 'completed' AND duration_seconds > 0 THEN duration_seconds END) as avg_duration
+                FROM analyses
             """)
-            avg_duration = cursor.fetchone()[0] or 0
-
+            row = cursor.fetchone()
+            total, completed, failed, running, avg_duration = row
+            total = total or 0
+            completed = completed or 0
             return {
                 "total": total,
                 "completed": completed,
-                "failed": failed,
-                "running": running,
+                "failed": failed or 0,
+                "running": running or 0,
                 "success_rate": round((completed / total * 100) if total > 0 else 0, 2),
-                "avg_duration_seconds": round(avg_duration, 2)
+                "avg_duration_seconds": round(avg_duration or 0, 2)
             }
 
     def save_chat_history(self, analysis_id: str, chat_history: List[Dict[str, str]]) -> None:

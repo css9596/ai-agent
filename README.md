@@ -23,7 +23,7 @@
 
 ### 멀티 에이전트 분석 파이프라인
 
-요구사항 하나를 AI 6명이 순서대로 분석합니다:
+요구사항 하나를 AI 6명이 **한 명씩 순서대로** 분석합니다:
 
 ```
 기획자 → 개발자 → 영향도 분석 → 검토자 → 품질검사 → 문서화
@@ -35,6 +35,8 @@
 - **검토자**: 보안/성능/일정 리스크 도출
 - **품질 검사**: 95점 미만 에이전트 자동 재실행
 - **문서화**: 8섹션 마크다운 분석서 완성
+
+> 에이전트는 동시에 실행되지 않고 앞 에이전트가 완료되면 다음 에이전트가 시작됩니다. CPU 자원을 효율적으로 사용합니다.
 
 ---
 
@@ -79,8 +81,8 @@
 ### 1. Docker로 실행 (권장)
 
 ```bash
-git clone <repo_url>
-cd multi-agent
+git clone https://github.com/css9596/ai-agent.git
+cd ai-agent
 
 # 시작
 docker-compose up -d --build
@@ -89,14 +91,13 @@ docker-compose up -d --build
 docker-compose exec ollama ollama pull qwen2.5:7b
 
 # 접속
-# 메인: http://localhost:8000
+# 메인:   http://localhost:8000
 # 관리자: http://localhost:8000/admin
 ```
 
 ### 2. 로컬 Python으로 실행
 
 ```bash
-cd multi-agent
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -146,7 +147,7 @@ LLM_MODE=mock python app.py
 ### 3단계: 쌓이면 자동으로 맞춰짐
 
 ```
-5번 기억 → "우리 팀 분석서 스타일"로 수렴
+5번 기억  → "우리 팀 분석서 스타일"로 수렴
 10번 기억 → "이게 우리 팀 분석서다" 느낌
 ```
 
@@ -175,21 +176,24 @@ LLM_MODE=mock python app.py
 ## 디렉토리 구조
 
 ```
-multi-agent/
+ai-agent/
 ├── app.py                  # FastAPI 웹서버
 ├── orchestrator.py         # 에이전트 파이프라인 조율
 ├── database.py             # SQLite (분석이력, 프로필, 학습예시)
+├── config.py               # 환경변수 및 설정
 ├── agents/                 # 6개 전문 에이전트
-│   ├── planner.py
-│   ├── developer.py
-│   ├── impact_analyzer.py
-│   ├── reviewer.py
-│   ├── quality_checker.py
-│   └── documenter.py
+│   ├── planner.py          # 기획자
+│   ├── developer.py        # 개발자
+│   ├── impact_analyzer.py  # 영향도 분석
+│   ├── reviewer.py         # 검토자
+│   ├── quality_checker.py  # 품질 검사
+│   └── documenter.py       # 문서화
 ├── utils/
 │   ├── llm_client.py       # Ollama/로컬 LLM 클라이언트
 │   ├── claude_client.py    # Claude API 클라이언트
-│   └── context_builder.py  # 프로필/히스토리 프롬프트 빌더
+│   ├── context_builder.py  # 프로필/히스토리 프롬프트 빌더
+│   ├── queue_manager.py    # 분석 작업 큐 (순차 실행)
+│   └── file_processor.py   # 파일 텍스트 추출
 ├── static/
 │   ├── index.html          # 메인 UI
 │   └── admin.html          # 관리자 대시보드
@@ -202,7 +206,9 @@ multi-agent/
 ## 트러블슈팅
 
 **분석이 중국어로 나옴**
-→ 이미 수정됨. `docker-compose restart app`으로 재시작
+```bash
+docker-compose restart app
+```
 
 **Ollama 모델 오류**
 ```bash
@@ -221,3 +227,18 @@ docker-compose down && docker-compose up -d --build
 ```
 
 더 자세한 내용은 [TROUBLESHOOTING.md](TROUBLESHOOTING.md)를 참고하세요.
+
+---
+
+## 변경 이력
+
+### 최근 업데이트
+
+- **순차 실행**: 에이전트를 한 번에 하나씩 실행해 CPU 과부하 방지 (`MAX_CONCURRENT_ANALYSES=1`)
+- **검토자 한국어 수정**: 리뷰어 에이전트 응답 한국어 강제 적용
+- **성능 개선**
+  - DB 인스턴스 재사용 (매 분석마다 재생성 제거)
+  - 통계 쿼리 5개 → 1개 통합
+  - 분석 완료 처리 쿼리 3개 → 1개 통합
+  - SQLite WAL 모드 활성화
+  - 파일 스캔 대신 컨텍스트에서 직접 경로 참조
