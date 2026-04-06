@@ -24,6 +24,7 @@ class LLMClient:
         self.model = model
         self.mock = mock
         self._client = OpenAI(api_key=api_key, base_url=base_url) if not mock else None
+        self._stream_cb = None  # 스트리밍 콜백 (orchestrator가 설정)
 
     @staticmethod
     def _korean_system_prompt(system_prompt: str) -> str:
