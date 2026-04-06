@@ -88,7 +88,7 @@ class DocumenterAgent:
             f"[통합 컨텍스트]\n{context}"
         )
         markdown = self.client.request_text(
-            system_prompt="You are a technical documentation agent.",
+            system_prompt="You are a technical documentation agent. Always respond in Korean only.",
             user_prompt=prompt,
         )
         context["documenter"] = {"markdown": markdown}

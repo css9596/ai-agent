@@ -214,37 +214,51 @@
                     </h2>
 
                     <!-- Pipeline -->
-                    <div id="pipeline" class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-12 overflow-x-auto pb-4">
-                        <!-- Pipeline Steps -->
+                    <div id="pipeline" class="flex flex-col sm:flex-row justify-between items-center gap-2 mb-8 overflow-x-auto pb-4">
                         <div class="pipeline-step pending flex flex-col items-center" data-agent="orchestrator">
-                            <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl mb-2 transition-smooth">⚙️</div>
-                            <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Orchestrator</span>
+                            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl mb-1 transition-smooth">⚙️</div>
+                            <span class="text-xs font-medium text-gray-700 whitespace-nowrap">선택</span>
                         </div>
-                        <div class="hidden sm:block flex-1 h-1 bg-gradient-to-r from-gray-300 to-gray-300"></div>
+                        <div class="hidden sm:block flex-1 h-1 bg-gray-300 min-w-2"></div>
 
                         <div class="pipeline-step pending flex flex-col items-center" data-agent="planner">
-                            <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl mb-2 transition-smooth">📋</div>
-                            <span class="text-sm font-medium text-gray-700 whitespace-nowrap">기획자</span>
+                            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl mb-1 transition-smooth">📋</div>
+                            <span class="text-xs font-medium text-gray-700 whitespace-nowrap">기획자</span>
                         </div>
-                        <div class="hidden sm:block flex-1 h-1 bg-gradient-to-r from-gray-300 to-gray-300"></div>
+                        <div class="hidden sm:block flex-1 h-1 bg-gray-300 min-w-2"></div>
 
                         <div class="pipeline-step pending flex flex-col items-center" data-agent="developer">
-                            <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl mb-2 transition-smooth">💻</div>
-                            <span class="text-sm font-medium text-gray-700 whitespace-nowrap">개발자</span>
+                            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl mb-1 transition-smooth">💻</div>
+                            <span class="text-xs font-medium text-gray-700 whitespace-nowrap">개발자</span>
                         </div>
-                        <div class="hidden sm:block flex-1 h-1 bg-gradient-to-r from-gray-300 to-gray-300"></div>
+                        <div class="hidden sm:block flex-1 h-1 bg-gray-300 min-w-2"></div>
+
+                        <div class="pipeline-step pending flex flex-col items-center" data-agent="impact_analyzer">
+                            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl mb-1 transition-smooth">🗺️</div>
+                            <span class="text-xs font-medium text-gray-700 whitespace-nowrap">영향도</span>
+                        </div>
+                        <div class="hidden sm:block flex-1 h-1 bg-gray-300 min-w-2"></div>
 
                         <div class="pipeline-step pending flex flex-col items-center" data-agent="reviewer">
-                            <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl mb-2 transition-smooth">🔍</div>
-                            <span class="text-sm font-medium text-gray-700 whitespace-nowrap">검토자</span>
+                            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl mb-1 transition-smooth">🔍</div>
+                            <span class="text-xs font-medium text-gray-700 whitespace-nowrap">검토자</span>
                         </div>
-                        <div class="hidden sm:block flex-1 h-1 bg-gradient-to-r from-gray-300 to-gray-300"></div>
+                        <div class="hidden sm:block flex-1 h-1 bg-gray-300 min-w-2"></div>
+
+                        <div class="pipeline-step pending flex flex-col items-center" data-agent="quality_checker">
+                            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl mb-1 transition-smooth">🏆</div>
+                            <span class="text-xs font-medium text-gray-700 whitespace-nowrap">품질검사</span>
+                        </div>
+                        <div class="hidden sm:block flex-1 h-1 bg-gray-300 min-w-2"></div>
 
                         <div class="pipeline-step pending flex flex-col items-center" data-agent="documenter">
-                            <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl mb-2 transition-smooth">📝</div>
-                            <span class="text-sm font-medium text-gray-700 whitespace-nowrap">문서화</span>
+                            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl mb-1 transition-smooth">📝</div>
+                            <span class="text-xs font-medium text-gray-700 whitespace-nowrap">문서화</span>
                         </div>
                     </div>
+
+                    <!-- Agent Result Cards -->
+                    <div id="agentResultCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"></div>
 
                     <!-- Tabs -->
                     <div class="grid lg:grid-cols-3 gap-6">
@@ -269,7 +283,7 @@
                                 <div id="progressStats" class="space-y-3">
                                     <div class="flex justify-between text-sm">
                                         <span class="text-gray-600">완료된 단계</span>
-                                        <span id="completedSteps" class="font-bold text-gray-900">0/5</span>
+                                        <span id="completedSteps" class="font-bold text-gray-900">0/7</span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2">
                                         <div id="progressBar" class="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
@@ -712,6 +726,16 @@
             }
 
             showScreen('monitoring');
+            // 이전 분석 카드/로그 초기화
+            document.getElementById('agentResultCards').innerHTML = '';
+            document.getElementById('logContainer').innerHTML = '<div class="text-blue-400">분석을 시작했습니다...</div>';
+            document.querySelectorAll('.pipeline-step').forEach(s => {
+                s.classList.remove('active', 'done');
+                s.classList.add('pending');
+                const icon = s.querySelector('.w-12');
+                if (icon) icon.classList.remove('bg-green-500', 'bg-blue-500', 'text-white', 'animate-pulse');
+                if (icon) icon.classList.add('bg-gray-200');
+            });
             await startAnalysis(file, text);
         });
 
@@ -782,12 +806,17 @@
                 case 'agent_start':
                     addLog('info', `[${getAgentName(agent)}] 분석 시작...`);
                     updatePipeline(agent, 'active');
-                    updateProgress();
                     break;
 
                 case 'agent_done':
                     addLog('done', `[${getAgentName(agent)}] 완료`);
                     updatePipeline(agent, 'done');
+                    break;
+
+                case 'agent_result':
+                    if (event.summary && Object.keys(event.summary).length > 0) {
+                        renderAgentResultCard(agent, event.summary);
+                    }
                     break;
 
                 case 'complete':
@@ -835,19 +864,22 @@
 
         function updatePipeline(agent, status) {
             const step = document.querySelector(`[data-agent="${agent}"]`);
-            if (step) {
-                const icon = step.querySelector('.w-16');
-                step.classList.remove('pending', 'active', 'done');
-                step.classList.add(status);
+            if (!step) return;
+            const icon = step.querySelector('.w-12');
+            if (!icon) return;
 
-                if (status === 'done') {
-                    icon.classList.add('bg-green-500', 'text-white');
-                    icon.classList.remove('bg-gray-200');
-                } else if (status === 'active') {
-                    icon.classList.add('bg-blue-500', 'text-white', 'animate-pulse');
-                    icon.classList.remove('bg-gray-200');
-                }
+            step.classList.remove('pending', 'active', 'done');
+            step.classList.add(status);
+            icon.classList.remove('bg-gray-200', 'bg-blue-500', 'bg-green-500', 'text-white', 'animate-pulse');
+
+            if (status === 'active') {
+                icon.classList.add('bg-blue-500', 'text-white', 'animate-pulse');
+            } else if (status === 'done') {
+                icon.classList.add('bg-green-500', 'text-white');
+            } else {
+                icon.classList.add('bg-gray-200');
             }
+            updateProgress();
         }
 
         function getAgentName(agent) {
@@ -855,10 +887,67 @@
                 'orchestrator': '오케스트레이터',
                 'planner': '기획자',
                 'developer': '개발자',
+                'impact_analyzer': '영향도 분석',
                 'reviewer': '검토자',
+                'quality_checker': '품질 검사',
                 'documenter': '문서화'
             };
             return names[agent] || agent;
+        }
+
+        function renderAgentResultCard(agent, summary) {
+            const container = document.getElementById('agentResultCards');
+            const existing = document.getElementById(`card-${agent}`);
+            if (existing) existing.remove();
+
+            const colorMap = {
+                'planner':         'border-blue-400 bg-blue-50',
+                'developer':       'border-purple-400 bg-purple-50',
+                'impact_analyzer': 'border-yellow-400 bg-yellow-50',
+                'reviewer':        'border-red-400 bg-red-50',
+                'quality_checker': 'border-green-400 bg-green-50',
+                'documenter':      'border-gray-400 bg-gray-50',
+            };
+            const borderColor = colorMap[agent] || 'border-gray-300 bg-white';
+
+            let sectionsHtml = '';
+            (summary.sections || []).forEach(sec => {
+                const items = (sec.items || []).filter(i => i && String(i).trim());
+                if (!items.length && !sec.content) return;
+                sectionsHtml += `<div class="mt-2">
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">${sec.title || ''}</div>`;
+                if (sec.content) {
+                    sectionsHtml += `<pre class="text-xs text-gray-700 whitespace-pre-wrap">${sec.content}</pre>`;
+                } else {
+                    sectionsHtml += `<ul class="space-y-1">${items.slice(0, 5).map(i => {
+                        let text;
+                        if (typeof i === 'string') {
+                            text = i;
+                        } else if (typeof i === 'object' && i !== null) {
+                            const keys = ['content','description','requirement','text','name','title','value','item'];
+                            const found = keys.find(k => typeof i[k] === 'string');
+                            text = found ? i[found] : Object.values(i).filter(v => v != null).slice(0, 2).join(' | ');
+                        } else {
+                            text = String(i);
+                        }
+                        return `<li class="text-xs text-gray-700 flex gap-1"><span class="text-gray-400 mt-0.5">•</span><span>${text}</span></li>`;
+                    }).join('')}</ul>`;
+                }
+                sectionsHtml += `</div>`;
+            });
+
+            const card = document.createElement('div');
+            card.id = `card-${agent}`;
+            card.className = `rounded-xl border-2 ${borderColor} p-4 shadow-sm animate-slide-in`;
+            card.innerHTML = `
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xl">${summary.icon || ''}</span>
+                    <span class="font-semibold text-gray-800 text-sm">${summary.label || getAgentName(agent)}</span>
+                    <span class="ml-auto text-xs text-green-600 font-medium">✓ 완료</span>
+                </div>
+                ${sectionsHtml || '<div class="text-xs text-gray-400">결과 없음</div>'}
+            `;
+            container.appendChild(card);
         }
 
         async function showResult() {

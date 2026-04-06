@@ -153,14 +153,15 @@ async def stream_events(job_id: str):
             try:
                 event_data = await asyncio.wait_for(
                     event_queues[job_id].get(),
-                    timeout=60.0
+                    timeout=30.0
                 )
                 yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
 
                 if event_data.get("type") in ["complete", "error"]:
                     break
             except asyncio.TimeoutError:
-                pass
+                # 30초마다 heartbeat 전송 → 브라우저 연결 유지
+                yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
     finally:
         if job_id in event_queues:
             del event_queues[job_id]
@@ -321,6 +322,9 @@ async def analyze(
 
         logger.analysis_start(analysis_id, file.filename if file else "text_input")
 
+        # 대기 작업 포함 모든 job의 analysis_id를 미리 저장 (큐 실행 시 필요)
+        job_to_analysis[job_id] = analysis_id
+
         # 백그라운드에서 분석 실행
         if job_status == JobStatus.RUNNING:
             background_tasks.add_task(run_analysis, job_id, analysis_id, document)
@@ -345,10 +349,13 @@ async def analyze(
 
 async def run_analysis(job_id: str, analysis_id: str, document: str):
     """백그라운드에서 분석 실행"""
-    try:
-        loop = asyncio.get_running_loop()
+    loop = asyncio.get_running_loop()
+
+    # SSE 레이스 컨디션 방지: 이미 stream()이 큐를 만들었을 수 있으므로 없을 때만 생성
+    if job_id not in event_queues:
         event_queues[job_id] = asyncio.Queue()
 
+    try:
         orchestrator = Orchestrator(
             client=client,
             output_dir=settings.OUTPUT_DIR,
@@ -357,8 +364,7 @@ async def run_analysis(job_id: str, analysis_id: str, document: str):
 
         # 분석 실행 후 context 저장
         context = await asyncio.to_thread(orchestrator.run, document)
-        job_contexts[job_id] = context  # 채팅 정제용 컨텍스트 저장
-        job_to_analysis[job_id] = analysis_id  # DB 저장용 매핑
+        job_contexts[job_id] = context
 
         # 출력 파일 경로는 orchestrator context에 이미 저장되어 있음
         output_file_path = context.get("output_file")
@@ -369,6 +375,15 @@ async def run_analysis(job_id: str, analysis_id: str, document: str):
             raise Exception("출력 파일을 찾을 수 없습니다")
 
         queue_manager.complete_job(job_id)
+
+        # 오래된 컨텍스트 정리 (최근 10개만 유지)
+        if len(job_contexts) > 10:
+            oldest = list(job_contexts.keys())[0]
+            job_contexts.pop(oldest, None)
+            job_to_analysis.pop(oldest, None)
+
+        # 큐에서 다음 대기 작업 실행
+        await _start_next_queued_job()
 
     except Exception as e:
         import traceback
@@ -385,6 +400,19 @@ async def run_analysis(job_id: str, analysis_id: str, document: str):
                 "message": error_msg,
                 "actions": ["파일 형식을 확인하세요", "텍스트를 단축하세요", "다시 시도하세요"]
             })
+
+        # 실패해도 다음 대기 작업 실행
+        await _start_next_queued_job()
+
+
+async def _start_next_queued_job():
+    """큐에서 running 상태이지만 아직 실행 안 된 작업을 실행"""
+    for next_job_id, job in list(queue_manager.running_jobs.items()):
+        if next_job_id not in event_queues:
+            # event_queues에 없으면 아직 run_analysis가 시작되지 않은 것
+            next_analysis_id = job_to_analysis.get(next_job_id, f"analysis_{next_job_id[:8]}")
+            asyncio.ensure_future(run_analysis(next_job_id, next_analysis_id, job.document))
+            break  # 한 번에 하나씩
 
 
 @app.get("/api/stream/{job_id}")

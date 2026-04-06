@@ -47,7 +47,7 @@ class PlannerAgent:
             f"{examples_section}"
             f"{feedback_section}"
         )
-        result = self.client.request_json(system_prompt="You are a senior planner agent.", user_prompt=prompt)
+        result = self.client.request_json(system_prompt="You are a senior planner agent. Always respond in Korean only.", user_prompt=prompt)
         context["planner"] = result
         return context
 

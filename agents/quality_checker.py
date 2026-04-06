@@ -4,7 +4,7 @@ from typing import Any, Dict
 from utils.claude_client import ClaudeClient
 from utils.context_builder import KOREAN_INSTRUCTION
 
-QUALITY_THRESHOLD = 95
+QUALITY_THRESHOLD = 90
 MAX_RETRIES = 2
 
 
@@ -25,7 +25,7 @@ class QualityCheckerAgent:
             f"{KOREAN_INSTRUCTION}\n\n"
             "다음 멀티에이전트 분석 결과의 품질을 엄격하게 평가하세요.\n"
             "각 에이전트의 결과를 0~100점으로 채점하고 부족한 부분에 구체적인 피드백을 제공하세요.\n"
-            "95점 미만인 에이전트는 반드시 retry_agents 목록에 포함하세요.\n"
+            "90점 미만인 에이전트는 반드시 retry_agents 목록에 포함하세요.\n"
             "total_score는 4개 에이전트 점수의 평균입니다.\n"
             "반드시 JSON으로만 답변하세요. agent_scores의 각 값은 반드시 {\"score\": 숫자, \"feedback\": \"문자열\"} 형태여야 합니다.\n"
             "스키마:\n"
@@ -47,7 +47,7 @@ class QualityCheckerAgent:
             f"[검토 결과]\n{json.dumps(reviewer_data, ensure_ascii=False)}"
         )
         result = self.client.request_json(
-            system_prompt="You are a strict quality assurance manager agent.",
+            system_prompt="You are a strict quality assurance manager agent. Always respond in Korean only.",
             user_prompt=prompt,
         )
 

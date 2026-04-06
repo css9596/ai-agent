@@ -47,7 +47,7 @@ class DeveloperAgent:
             f"{examples_section}"
             f"{feedback_section}"
         )
-        result = self.client.request_json(system_prompt="You are a senior software developer agent.", user_prompt=prompt)
+        result = self.client.request_json(system_prompt="You are a senior software developer agent. Always respond in Korean only.", user_prompt=prompt)
         context["developer"] = result
         return context
 

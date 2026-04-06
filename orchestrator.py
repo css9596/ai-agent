@@ -11,6 +11,7 @@ from agents.quality_checker import MAX_RETRIES, QUALITY_THRESHOLD, QualityChecke
 from agents.reviewer import ReviewerAgent
 from utils.claude_client import ClaudeClient
 from utils.context_builder import KOREAN_INSTRUCTION
+from utils.logger import logger
 from database import db
 
 # 분석 에이전트 실행 순서 (documenter, quality_checker 제외)
@@ -250,23 +251,29 @@ class Orchestrator:
     def _run_agent(self, agent_name: str, context: Dict[str, Any], feedback: str = "", examples: List[Dict] = None) -> Dict[str, Any]:
         """단일 에이전트 실행 + 이벤트 발행."""
         self.emit("agent_start", {"agent": agent_name})
+        logger.info(f"에이전트 시작", agent=agent_name)
         agent = self.agent_map[agent_name]
 
-        # feedback/examples 지원 에이전트는 keyword argument로 전달
-        if agent_name != "quality_checker":
-            kwargs = {}
-            if feedback:
-                kwargs["feedback"] = feedback
-            if examples:
-                kwargs["examples"] = examples
-            if kwargs:
-                context = agent.run(context, **kwargs)
+        try:
+            # feedback/examples 지원 에이전트는 keyword argument로 전달
+            if agent_name != "quality_checker":
+                kwargs = {}
+                if feedback:
+                    kwargs["feedback"] = feedback
+                if examples:
+                    kwargs["examples"] = examples
+                if kwargs:
+                    context = agent.run(context, **kwargs)
+                else:
+                    context = agent.run(context)
             else:
                 context = agent.run(context)
-        else:
-            context = agent.run(context)
+        except Exception as exc:
+            logger.error(f"에이전트 오류", agent=agent_name, error=str(exc))
+            raise
 
         result = context.get(agent_name)
+        logger.info(f"에이전트 완료", agent=agent_name)
         self.emit("agent_done", {"agent": agent_name, "result": result})
         agent_summary = self._summarize_agent_result(agent_name, result)
         self.emit("agent_result", {
@@ -282,19 +289,54 @@ class Orchestrator:
         return [name for name in standard_order if name in selected_agents]
 
     @staticmethod
+    def _to_list(value, limit: int = None) -> list:
+        """LLM이 list/dict/str 등 다양한 형태로 반환할 때 안전하게 문자열 list로 변환"""
+        if isinstance(value, list):
+            raw = value
+        elif isinstance(value, dict):
+            raw = list(value.values())
+        elif isinstance(value, str):
+            raw = [value] if value else []
+        else:
+            raw = []
+
+        # 각 항목도 문자열로 정규화 (list 안에 dict/list가 있을 경우)
+        result = []
+        for item in raw:
+            if isinstance(item, str):
+                result.append(item)
+            elif isinstance(item, dict):
+                # 대표 키 순서로 텍스트 추출
+                for key in ("content", "description", "requirement", "text", "name", "title", "value", "item"):
+                    if key in item and isinstance(item[key], str):
+                        result.append(item[key])
+                        break
+                else:
+                    # 대표 키 없으면 첫 번째 str 값 사용
+                    str_vals = [str(v) for v in item.values() if v is not None]
+                    result.append(" | ".join(str_vals[:2]) if str_vals else "")
+            else:
+                result.append(str(item))
+
+        result = [r for r in result if r.strip()]
+        return result[:limit] if limit else result
+
+    @staticmethod
     def _summarize_agent_result(agent_name: str, result: Dict[str, Any]) -> Dict[str, Any]:
         """에이전트 결과를 UI 표시용으로 요약"""
-        if not result:
+        if not result or not isinstance(result, dict):
             return {}
+
+        to_list = Orchestrator._to_list
 
         if agent_name == "planner":
             return {
                 "label": "기획자",
                 "icon": "📋",
                 "sections": [
-                    {"title": "핵심 요구사항", "items": result.get("core_requirements", [])[:5]},
-                    {"title": "기능 요구사항", "items": result.get("functional_requirements", [])[:8]},
-                    {"title": "명확화 질문", "items": result.get("clarification_questions", [])[:3]},
+                    {"title": "핵심 요구사항", "items": to_list(result.get("core_requirements"), 5)},
+                    {"title": "기능 요구사항", "items": to_list(result.get("functional_requirements"), 8)},
+                    {"title": "명확화 질문", "items": to_list(result.get("clarification_questions"), 3)},
                 ],
             }
 
@@ -303,18 +345,26 @@ class Orchestrator:
                 "label": "개발자",
                 "icon": "💻",
                 "sections": [
-                    {"title": "기술 스택", "items": result.get("technical_spec", [])[:5]},
-                    {"title": "영향 모듈", "items": result.get("impacted_modules", [])},
-                    {"title": "예상 작업량", "items": [result.get("effort", "정보 없음")]},
+                    {"title": "기술 스택", "items": to_list(result.get("technical_spec"), 5)},
+                    {"title": "영향 모듈", "items": to_list(result.get("impacted_modules"))},
+                    {"title": "예상 작업량", "items": [str(result.get("effort", "정보 없음"))]},
                 ],
             }
 
         if agent_name == "impact_analyzer":
             summary = result.get("impact_summary", {})
+            if not isinstance(summary, dict):
+                summary = {}
             file_impacts = result.get("file_impacts", {})
+            if not isinstance(file_impacts, dict):
+                file_impacts = {}
             affected_files = []
             for layer, items in file_impacts.items():
+                if not isinstance(items, list):
+                    continue
                 for item in items:
+                    if not isinstance(item, dict):
+                        continue
                     change = "🆕" if item.get("change_type") == "NEW" else "✏️"
                     affected_files.append(f"{change} [{layer.upper()}] {item.get('file', '')}")
             return {
@@ -329,7 +379,7 @@ class Orchestrator:
                         ],
                     },
                     {"title": "파일 목록", "items": affected_files[:10]},
-                    {"title": "변경 연쇄", "items": [result.get("dependency_chain", "")]},
+                    {"title": "변경 연쇄", "items": [str(result.get("dependency_chain", ""))]},
                 ],
             }
 
@@ -338,9 +388,9 @@ class Orchestrator:
                 "label": "검토자",
                 "icon": "🔍",
                 "sections": [
-                    {"title": "보안 리스크", "items": result.get("security_risks", [])},
-                    {"title": "성능 리스크", "items": result.get("performance_risks", [])},
-                    {"title": "일정 리스크", "items": result.get("schedule_risks", [])},
+                    {"title": "보안 리스크", "items": to_list(result.get("security_risks"))},
+                    {"title": "성능 리스크", "items": to_list(result.get("performance_risks"))},
+                    {"title": "일정 리스크", "items": to_list(result.get("schedule_risks"))},
                 ],
             }
 
