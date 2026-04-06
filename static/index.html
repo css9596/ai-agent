@@ -944,11 +944,12 @@
                 if (data.status === 'pending') {
                     document.getElementById('queueWarning').classList.remove('hidden');
                     document.getElementById('queuePosition').textContent = `현재 ${data.queue.pending_jobs.length}번째 대기 중`;
+                    addLog('status', `⏳ 대기열에 추가되었습니다. 앞선 분석이 완료되면 자동으로 시작됩니다.`);
                 } else {
                     document.getElementById('queueWarning').classList.add('hidden');
+                    addLog('status', '분석을 시작합니다...');
                 }
 
-                addLog('status', '분석을 시작합니다...');
                 connectToStream(data.job_id);
             } catch (error) {
                 alert(`요청 실패: ${error.message}`);

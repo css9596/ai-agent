@@ -84,6 +84,9 @@ else:  # "claude" (기본값)
 # SSE 이벤트 큐 관리
 event_queues: Dict[str, asyncio.Queue] = {}
 
+# run_analysis가 실제로 시작된 job_id 추적 (event_queues와 별도 관리)
+started_analysis_jobs: set = set()
+
 # job_id별 분석 컨텍스트 저장 (채팅 정제용)
 job_contexts: Dict[str, Dict] = {}
 
@@ -350,10 +353,14 @@ async def analyze(
 async def run_analysis(job_id: str, analysis_id: str, document: str):
     """백그라운드에서 분석 실행"""
     loop = asyncio.get_running_loop()
+    started_analysis_jobs.add(job_id)
 
     # SSE 레이스 컨디션 방지: 이미 stream()이 큐를 만들었을 수 있으므로 없을 때만 생성
     if job_id not in event_queues:
         event_queues[job_id] = asyncio.Queue()
+
+    # 분석 시작 알림
+    await event_queues[job_id].put({"type": "status", "message": "분석을 시작합니다..."})
 
     try:
         orchestrator = Orchestrator(
@@ -403,13 +410,15 @@ async def run_analysis(job_id: str, analysis_id: str, document: str):
 
         # 실패해도 다음 대기 작업 실행
         await _start_next_queued_job()
+    finally:
+        started_analysis_jobs.discard(job_id)
 
 
 async def _start_next_queued_job():
     """큐에서 running 상태이지만 아직 실행 안 된 작업을 실행"""
     for next_job_id, job in list(queue_manager.running_jobs.items()):
-        if next_job_id not in event_queues:
-            # event_queues에 없으면 아직 run_analysis가 시작되지 않은 것
+        # event_queues가 아닌 started_analysis_jobs로 판단 (stream()이 event_queues를 먼저 만들 수 있음)
+        if next_job_id not in started_analysis_jobs:
             next_analysis_id = job_to_analysis.get(next_job_id, f"analysis_{next_job_id[:8]}")
             asyncio.ensure_future(run_analysis(next_job_id, next_analysis_id, job.document))
             break  # 한 번에 하나씩
