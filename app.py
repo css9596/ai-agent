@@ -359,9 +359,6 @@ async def run_analysis(job_id: str, analysis_id: str, document: str):
     if job_id not in event_queues:
         event_queues[job_id] = asyncio.Queue()
 
-    # 분석 시작 알림
-    await event_queues[job_id].put({"type": "status", "message": "분석을 시작합니다..."})
-
     try:
         orchestrator = Orchestrator(
             client=client,
