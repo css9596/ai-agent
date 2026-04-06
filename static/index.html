@@ -64,6 +64,184 @@
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* ===== Result Content Styles ===== */
+        #resultContent {
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: #374151;
+        }
+
+        #resultContent h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            padding: 14px 20px;
+            border-radius: 10px;
+            margin: 2rem 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #resultContent h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1e3a5f;
+            border-left: 4px solid #667eea;
+            background: linear-gradient(90deg, #f0f4ff, transparent);
+            padding: 10px 16px;
+            border-radius: 0 8px 8px 0;
+            margin: 1.75rem 0 0.75rem;
+        }
+
+        #resultContent h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #374151;
+            border-left: 3px solid #a78bfa;
+            padding-left: 10px;
+            margin: 1.25rem 0 0.5rem;
+        }
+
+        #resultContent h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #4b5563;
+            margin: 1rem 0 0.4rem;
+        }
+
+        #resultContent p {
+            margin: 0.6rem 0;
+            color: #4b5563;
+        }
+
+        #resultContent ul {
+            list-style: none;
+            margin: 0.75rem 0;
+            padding: 0;
+        }
+
+        #resultContent ul li {
+            padding: 4px 0 4px 1.4rem;
+            position: relative;
+            color: #374151;
+        }
+
+        #resultContent ul li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+
+        #resultContent ol {
+            margin: 0.75rem 0;
+            padding-left: 1.5rem;
+        }
+
+        #resultContent ol li {
+            padding: 3px 0;
+            color: #374151;
+        }
+
+        #resultContent table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.25rem 0;
+            font-size: 0.875rem;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        #resultContent thead tr {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #resultContent th {
+            color: white;
+            padding: 11px 16px;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #resultContent td {
+            padding: 9px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #374151;
+            vertical-align: top;
+        }
+
+        #resultContent tbody tr:nth-child(even) td {
+            background: #f8f9ff;
+        }
+
+        #resultContent tbody tr:hover td {
+            background: #eff6ff;
+        }
+
+        #resultContent code {
+            background: #f1f5f9;
+            color: #c7254e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.875em;
+            font-family: 'Courier New', monospace;
+        }
+
+        #resultContent pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        #resultContent pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+
+        #resultContent blockquote {
+            border-left: 4px solid #667eea;
+            background: #f0f4ff;
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+            color: #4b5563;
+            font-style: italic;
+        }
+
+        #resultContent hr {
+            border: none;
+            border-top: 2px solid #e5e7eb;
+            margin: 2rem 0;
+        }
+
+        #resultContent strong {
+            color: #1f2937;
+            font-weight: 700;
+        }
+
+        #resultContent a {
+            color: #667eea;
+            text-decoration: none;
+            border-bottom: 1px dotted #667eea;
+        }
+
+        /* Section separator spacing */
+        #resultContent > h1:not(:first-child) {
+            margin-top: 2.5rem;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-white to-slate-100 text-gray-900">
@@ -263,12 +441,22 @@
                     <!-- Tabs -->
                     <div class="grid lg:grid-cols-3 gap-6">
                         <!-- Log Panel (Main) -->
-                        <div class="lg:col-span-2">
+                        <div class="lg:col-span-2 space-y-4">
+                            <!-- 실시간 생성 패널 -->
+                            <div id="thinkingPanel" class="hidden bg-white rounded-xl shadow-lg overflow-hidden">
+                                <div class="bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-4 py-3 font-semibold flex items-center gap-2 text-sm">
+                                    <i class="fas fa-brain animate-pulse"></i>
+                                    <span id="thinkingAgentLabel">분석 중...</span>
+                                    <span class="ml-auto text-xs opacity-75" id="thinkingTokenCount">0 토큰</span>
+                                </div>
+                                <div id="thinkingContent" class="bg-slate-800 text-green-300 font-mono text-xs h-40 overflow-y-auto p-3 whitespace-pre-wrap leading-relaxed"></div>
+                            </div>
+                            <!-- 분석 로그 -->
                             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                                 <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 font-semibold flex items-center gap-2">
                                     <i class="fas fa-terminal"></i> 분석 로그
                                 </div>
-                                <div id="logContainer" class="bg-slate-900 text-slate-100 font-mono text-sm h-80 overflow-y-auto p-4 space-y-1">
+                                <div id="logContainer" class="bg-slate-900 text-slate-100 font-mono text-sm h-64 overflow-y-auto p-4 space-y-1">
                                     <div class="text-blue-400">분석을 시작했습니다...</div>
                                 </div>
                             </div>
@@ -346,7 +534,7 @@
 
                     <!-- Content -->
                     <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-                        <div class="prose prose-sm sm:prose lg:prose-lg max-w-none p-8 sm:p-12" id="resultContent"></div>
+                        <div class="max-w-none p-8 sm:p-10" id="resultContent"></div>
                     </div>
 
                     <!-- Chat Refinement Panel -->
@@ -726,9 +914,10 @@
             }
 
             showScreen('monitoring');
-            // 이전 분석 카드/로그 초기화
+            // 이전 분석 카드/로그/thinking 초기화
             document.getElementById('agentResultCards').innerHTML = '';
             document.getElementById('logContainer').innerHTML = '<div class="text-blue-400">분석을 시작했습니다...</div>';
+            clearThinkingPanel();
             document.querySelectorAll('.pipeline-step').forEach(s => {
                 s.classList.remove('active', 'done');
                 s.classList.add('pending');
@@ -813,7 +1002,12 @@
                     updatePipeline(agent, 'done');
                     break;
 
+                case 'agent_thinking':
+                    updateThinkingPanel(agent, event.text);
+                    break;
+
                 case 'agent_result':
+                    clearThinkingPanel();
                     if (event.summary && Object.keys(event.summary).length > 0) {
                         renderAgentResultCard(agent, event.summary);
                     }
@@ -893,6 +1087,29 @@
                 'documenter': '문서화'
             };
             return names[agent] || agent;
+        }
+
+        function updateThinkingPanel(agent, text) {
+            const panel = document.getElementById('thinkingPanel');
+            const label = document.getElementById('thinkingAgentLabel');
+            const content = document.getElementById('thinkingContent');
+            const tokenCount = document.getElementById('thinkingTokenCount');
+            panel.classList.remove('hidden');
+            label.textContent = `${getAgentName(agent)} 생성 중...`;
+            // JSON이면 보기 좋게 정리, 아니면 그대로
+            let display = text;
+            try {
+                const parsed = JSON.parse(text);
+                display = JSON.stringify(parsed, null, 2);
+            } catch(e) { /* 스트리밍 중이라 아직 완성 안 된 JSON — 그대로 표시 */ }
+            content.textContent = display;
+            content.scrollTop = content.scrollHeight;
+            tokenCount.textContent = `${text.length} chars`;
+        }
+
+        function clearThinkingPanel() {
+            document.getElementById('thinkingPanel').classList.add('hidden');
+            document.getElementById('thinkingContent').textContent = '';
         }
 
         function renderAgentResultCard(agent, summary) {

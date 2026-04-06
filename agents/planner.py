@@ -4,7 +4,7 @@ from typing import Any, Dict
 from utils.claude_client import ClaudeClient
 from utils.context_builder import build_profile_section as _build_profile_section
 from utils.context_builder import build_history_section as _build_history_section
-from utils.context_builder import KOREAN_INSTRUCTION
+from utils.context_builder import KOREAN_INSTRUCTION, KOREAN_SUFFIX
 
 
 class PlannerAgent:
@@ -33,8 +33,9 @@ class PlannerAgent:
                 examples_section += f"입력: {input_preview}...\n"
                 examples_section += f"출력(일부): {output_preview}...\n"
         prompt = (
-            f"{KOREAN_INSTRUCTION}\n\n"
-            "다음 요청 문서에서 핵심 요구사항/기능 목록/비기능 요구사항/모호점/명확화 질문을 추출하세요.\n"
+            f"{KOREAN_INSTRUCTION}"
+            f"{feedback_section}"
+            "\n\n다음 요청 문서에서 핵심 요구사항/기능 목록/비기능 요구사항/모호점/명확화 질문을 추출하세요.\n"
             "반드시 JSON으로만 답변하세요.\n"
             "스키마:\n"
             "{"
@@ -45,7 +46,7 @@ class PlannerAgent:
             f"{profile_section}"
             f"{history_section}"
             f"{examples_section}"
-            f"{feedback_section}"
+            f"{KOREAN_SUFFIX}"
         )
         result = self.client.request_json(system_prompt="You are a senior planner agent. Always respond in Korean only.", user_prompt=prompt)
         context["planner"] = result

@@ -3,7 +3,7 @@ from typing import Any, Dict
 from utils.claude_client import ClaudeClient
 from utils.context_builder import build_profile_section as _build_profile_section
 from utils.context_builder import build_history_section as _build_history_section
-from utils.context_builder import KOREAN_INSTRUCTION
+from utils.context_builder import KOREAN_INSTRUCTION, KOREAN_SUFFIX
 
 
 class DocumenterAgent:
@@ -86,6 +86,7 @@ class DocumenterAgent:
             f"{history_section}"
             f"{examples_section}"
             f"[통합 컨텍스트]\n{context}"
+            f"{KOREAN_SUFFIX}"
         )
         markdown = self.client.request_text(
             system_prompt="You are a technical documentation agent. Always respond in Korean only.",

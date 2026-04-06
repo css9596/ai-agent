@@ -10,7 +10,7 @@ from agents.planner import PlannerAgent
 from agents.quality_checker import MAX_RETRIES, QUALITY_THRESHOLD, QualityCheckerAgent
 from agents.reviewer import ReviewerAgent
 from utils.claude_client import ClaudeClient
-from utils.context_builder import KOREAN_INSTRUCTION
+from utils.context_builder import KOREAN_INSTRUCTION, strip_forbidden_text
 from utils.logger import logger
 from database import db
 
@@ -128,19 +128,30 @@ class Orchestrator:
                 })
                 break
 
-            # 재시도: 낮은 점수 에이전트만 피드백과 함께 재실행 (실행된 에이전트 범위 내에서)
+            # 재시도: 낮은 점수 에이전트 피드백과 함께 재실행
             retry_agents = [a for a in qc.get("retry_agents", []) if a in analysis_agents]
+
+            # retry_agents가 비어 있어도 점수 미달이면 점수 낮은 순으로 자동 선택
+            if not retry_agents:
+                scored = [
+                    (a, agent_scores.get(a, {}).get("score", 0) if isinstance(agent_scores.get(a), dict) else 0)
+                    for a in analysis_agents
+                ]
+                retry_agents = [a for a, s in scored if s < QUALITY_THRESHOLD]
+                if not retry_agents:
+                    retry_agents = [min(scored, key=lambda x: x[1])[0]]
+
             self.emit("status", {
                 "agent": "quality_checker",
                 "message": (
                     f"🔄 품질 점수 {score}점 (기준 {QUALITY_THRESHOLD}점) — "
-                    f"{retry_agents} 재실행 중... (시도 {attempt + 1}/{MAX_RETRIES})"
+                    f"{[a for a in retry_agents]} 재실행 (시도 {attempt + 1}/{MAX_RETRIES})"
                 ),
             })
 
-            # 재시도 에이전트별 피드백 상세 표시
             self._emit_retry_feedback(retry_agents, agent_scores)
 
+            # 가장 앞 순서 에이전트부터 피드백 반영 재실행 → 이후 에이전트 연쇄 재실행
             for agent_name in analysis_agents:
                 if agent_name not in retry_agents:
                     continue
@@ -148,11 +159,13 @@ class Orchestrator:
                 feedback = score_data_f.get("feedback", "") if isinstance(score_data_f, dict) else ""
                 context = self._run_agent(agent_name, context, feedback=feedback, examples=examples)
 
-                # 재실행된 에이전트 이후 에이전트들도 순서대로 다시 실행 (선택된 범위 내)
                 idx = analysis_agents.index(agent_name)
                 for downstream in analysis_agents[idx + 1:]:
-                    context = self._run_agent(downstream, context, examples=examples)
-                break  # 가장 앞 순서 에이전트 1개씩 처리
+                    # 다운스트림도 해당 피드백이 있으면 반영
+                    ds_score_data = agent_scores.get(downstream, {})
+                    ds_feedback = ds_score_data.get("feedback", "") if isinstance(ds_score_data, dict) else ""
+                    context = self._run_agent(downstream, context, feedback=ds_feedback, examples=examples)
+                break  # 가장 앞 에이전트 재실행 → 나머지는 연쇄 재실행으로 커버
 
         # 3단계: 문서화
         context = self._run_agent("documenter", context, examples=examples)
@@ -254,23 +267,29 @@ class Orchestrator:
         logger.info(f"에이전트 시작", agent=agent_name)
         agent = self.agent_map[agent_name]
 
+        # 스트리밍 콜백 설정 (Ollama 실시간 출력용)
+        def _stream_cb(full_text: str):
+            self.emit("agent_thinking", {"agent": agent_name, "text": full_text})
+
+        if hasattr(self.client, "_stream_cb"):
+            self.client._stream_cb = _stream_cb
+
         try:
-            # feedback/examples 지원 에이전트는 keyword argument로 전달
             if agent_name != "quality_checker":
                 kwargs = {}
                 if feedback:
                     kwargs["feedback"] = feedback
                 if examples:
                     kwargs["examples"] = examples
-                if kwargs:
-                    context = agent.run(context, **kwargs)
-                else:
-                    context = agent.run(context)
+                context = agent.run(context, **kwargs) if kwargs else agent.run(context)
             else:
                 context = agent.run(context)
         except Exception as exc:
             logger.error(f"에이전트 오류", agent=agent_name, error=str(exc))
             raise
+        finally:
+            if hasattr(self.client, "_stream_cb"):
+                self.client._stream_cb = None
 
         result = context.get(agent_name)
         logger.info(f"에이전트 완료", agent=agent_name)
@@ -318,6 +337,8 @@ class Orchestrator:
             else:
                 result.append(str(item))
 
+        # 금지 언어(아랍어·중국어·일본어) 필터링
+        result = [strip_forbidden_text(r) for r in result]
         result = [r for r in result if r.strip()]
         return result[:limit] if limit else result
 

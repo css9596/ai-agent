@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from utils.claude_client import ClaudeClient
-from utils.context_builder import KOREAN_INSTRUCTION
+from utils.context_builder import KOREAN_INSTRUCTION, KOREAN_SUFFIX
 
 
 class ReviewerAgent:
@@ -27,8 +27,9 @@ class ReviewerAgent:
                 output_preview = ex.get("output_markdown", "")[:400]
                 examples_section += f"\n예시 {i} ({title}):\n{output_preview}...\n"
         prompt = (
-            f"{KOREAN_INSTRUCTION}\n\n"
-            "기획안, 개발 스펙, 영향도 분석을 교차 검토해서 누락 예외처리/보안/성능/일정 리스크를 도출하세요.\n"
+            f"{KOREAN_INSTRUCTION}"
+            f"{feedback_section}"
+            "\n\n기획안, 개발 스펙, 영향도 분석을 교차 검토해서 누락 예외처리/보안/성능/일정 리스크를 도출하세요.\n"
             "반드시 JSON으로만 답변하세요.\n"
             "스키마:\n"
             "{"
@@ -39,7 +40,7 @@ class ReviewerAgent:
             f"[개발]\n{json.dumps(developer_data, ensure_ascii=False)}\n\n"
             f"[영향도]\n{json.dumps(impact_data, ensure_ascii=False)}"
             f"{examples_section}"
-            f"{feedback_section}"
+            f"{KOREAN_SUFFIX}"
         )
         result = self.client.request_json(system_prompt="You are a strict software reviewer agent. Always respond in Korean only.", user_prompt=prompt)
         context["reviewer"] = result

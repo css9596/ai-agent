@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from utils.claude_client import ClaudeClient
-from utils.context_builder import KOREAN_INSTRUCTION
+from utils.context_builder import KOREAN_INSTRUCTION, KOREAN_SUFFIX
 
 
 class ImpactAnalyzerAgent:
@@ -26,8 +26,9 @@ class ImpactAnalyzerAgent:
                 output_preview = ex.get("output_markdown", "")[:400]
                 examples_section += f"\n예시 {i} ({title}):\n{output_preview}...\n"
         prompt = (
-            f"{KOREAN_INSTRUCTION}\n\n"
-            "기획/개발 분석 결과를 바탕으로 Java/JSP/jQuery/MyBatis 프로젝트의 영향도를 분석하세요.\n"
+            f"{KOREAN_INSTRUCTION}"
+            f"{feedback_section}"
+            "\n\n기획/개발 분석 결과를 바탕으로 Java/JSP/jQuery/MyBatis 프로젝트의 영향도를 분석하세요.\n"
             "각 레이어(Controller/Service/DAO/Mapper/JSP/JS)별로 변경·신규 파일과 메서드를 구체적으로 명시하세요.\n"
             "반드시 JSON으로만 답변하세요.\n"
             "스키마:\n"
@@ -47,7 +48,7 @@ class ImpactAnalyzerAgent:
             f"[기획 결과]\n{json.dumps(planner_data, ensure_ascii=False)}\n\n"
             f"[개발 분석 결과]\n{json.dumps(developer_data, ensure_ascii=False)}"
             f"{examples_section}"
-            f"{feedback_section}"
+            f"{KOREAN_SUFFIX}"
         )
         result = self.client.request_json(
             system_prompt=(

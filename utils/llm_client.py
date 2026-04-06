@@ -28,7 +28,13 @@ class LLMClient:
     @staticmethod
     def _korean_system_prompt(system_prompt: str) -> str:
         """한국어 응답 지시를 system_prompt에 추가"""
-        return system_prompt + "\n반드시 한국어로만 답변하세요. Never respond in Chinese or English."
+        return (
+            system_prompt
+            + "\n\nCRITICAL LANGUAGE RULE: Respond in Korean (한국어) ONLY."
+            + "\nFORBIDDEN languages: Chinese (中文), Arabic (عربي), Japanese (日本語), English sentences."
+            + "\n반드시 한국어로만 답변하세요. 중국어·아랍어·일본어 절대 금지."
+            + "\n请只用韩语回答。禁止使用中文、阿拉伯语、日语。"
+        )
 
     def request_json(
         self,
@@ -43,20 +49,38 @@ class LLMClient:
         last_error: Optional[Exception] = None
         last_text: str = ""
         system_prompt = self._korean_system_prompt(system_prompt)
+        stream_cb = getattr(self, "_stream_cb", None)
 
         for attempt in range(1, max_retries + 1):
             try:
-                response = self._client.chat.completions.create(
-                    model=self.model,
-                    max_tokens=1800,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                )
-                text = response.choices[0].message.content
-                last_text = text
-                return self._parse_json_safely(text)
+                if stream_cb:
+                    response = self._client.chat.completions.create(
+                        model=self.model,
+                        max_tokens=1800,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        stream=True,
+                    )
+                    full_text = ""
+                    for chunk in response:
+                        token = (chunk.choices[0].delta.content or "") if chunk.choices else ""
+                        if token:
+                            full_text += token
+                            stream_cb(full_text)
+                    last_text = full_text
+                else:
+                    response = self._client.chat.completions.create(
+                        model=self.model,
+                        max_tokens=1800,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                    )
+                    last_text = response.choices[0].message.content
+                return self._parse_json_safely(last_text)
             except Exception as exc:
                 last_error = exc
                 if attempt == max_retries:
@@ -89,9 +113,27 @@ class LLMClient:
 
         last_error: Optional[Exception] = None
         system_prompt = self._korean_system_prompt(system_prompt)
+        stream_cb = getattr(self, "_stream_cb", None)
 
         for attempt in range(1, max_retries + 1):
             try:
+                if stream_cb:
+                    response = self._client.chat.completions.create(
+                        model=self.model,
+                        max_tokens=2400,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        stream=True,
+                    )
+                    full_text = ""
+                    for chunk in response:
+                        token = (chunk.choices[0].delta.content or "") if chunk.choices else ""
+                        if token:
+                            full_text += token
+                            stream_cb(full_text)
+                    return full_text
                 response = self._client.chat.completions.create(
                     model=self.model,
                     max_tokens=2400,

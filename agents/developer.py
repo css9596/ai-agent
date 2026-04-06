@@ -4,7 +4,7 @@ from typing import Any, Dict
 from utils.claude_client import ClaudeClient
 from utils.context_builder import build_profile_section as _build_profile_section
 from utils.context_builder import build_history_section as _build_history_section
-from utils.context_builder import KOREAN_INSTRUCTION
+from utils.context_builder import KOREAN_INSTRUCTION, KOREAN_SUFFIX
 
 
 class DeveloperAgent:
@@ -33,8 +33,9 @@ class DeveloperAgent:
                 examples_section += f"입력: {input_preview}...\n"
                 examples_section += f"출력(일부): {output_preview}...\n"
         prompt = (
-            f"{KOREAN_INSTRUCTION}\n\n"
-            "기획 결과를 바탕으로 Java/JSP/jQuery/MyBatis 기준의 기술 스펙을 작성하세요.\n"
+            f"{KOREAN_INSTRUCTION}"
+            f"{feedback_section}"
+            "\n\n기획 결과를 바탕으로 Java/JSP/jQuery/MyBatis 기준의 기술 스펙을 작성하세요.\n"
             "DB 설계 시 인덱스 전략과 파일 저장 경로 관리 방식도 포함하세요.\n"
             "반드시 JSON으로만 답변하세요.\n"
             "스키마:\n"
@@ -45,7 +46,7 @@ class DeveloperAgent:
             f"{profile_section}"
             f"{history_section}"
             f"{examples_section}"
-            f"{feedback_section}"
+            f"{KOREAN_SUFFIX}"
         )
         result = self.client.request_json(system_prompt="You are a senior software developer agent. Always respond in Korean only.", user_prompt=prompt)
         context["developer"] = result

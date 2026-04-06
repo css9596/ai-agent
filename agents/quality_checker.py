@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict
 
 from utils.claude_client import ClaudeClient
-from utils.context_builder import KOREAN_INSTRUCTION
+from utils.context_builder import KOREAN_INSTRUCTION, KOREAN_SUFFIX
 
 QUALITY_THRESHOLD = 90
 MAX_RETRIES = 2
@@ -45,6 +45,7 @@ class QualityCheckerAgent:
             f"[개발 분석 결과]\n{json.dumps(developer_data, ensure_ascii=False)}\n\n"
             f"[영향도 분석 결과]\n{json.dumps(impact_data, ensure_ascii=False)}\n\n"
             f"[검토 결과]\n{json.dumps(reviewer_data, ensure_ascii=False)}"
+            f"{KOREAN_SUFFIX}"
         )
         result = self.client.request_json(
             system_prompt="You are a strict quality assurance manager agent. Always respond in Korean only.",

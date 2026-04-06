@@ -33,6 +33,8 @@ def export_to_html(
     # CSS 스타일
     css = """
         <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
+
             * {
                 margin: 0;
                 padding: 0;
@@ -40,8 +42,8 @@ def export_to_html(
             }
 
             html, body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto;
-                line-height: 1.6;
+                font-family: 'Noto Sans KR', 'Noto Sans CJK KR', 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
+                line-height: 1.7;
                 color: #1f2937;
             }
 
