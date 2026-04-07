@@ -260,6 +260,9 @@
                             <button onclick="showScreen('upload')" class="tab-btn px-3 py-1.5 text-sm font-medium rounded transition-smooth hover:bg-white">
                                 <i class="fas fa-sparkles"></i> 분석
                             </button>
+                            <button id="monitoringTabBtn" onclick="showScreen('monitoring')" class="tab-btn px-3 py-1.5 text-sm font-medium rounded transition-smooth hover:bg-white hidden text-blue-600">
+                                <i class="fas fa-spinner fa-spin"></i> 진행 중
+                            </button>
                             <button onclick="showScreen('result')" class="tab-btn px-3 py-1.5 text-sm font-medium rounded transition-smooth hover:bg-white hidden">
                                 <i class="fas fa-check-circle"></i> 결과
                             </button>
@@ -270,7 +273,7 @@
                                 <i class="fas fa-code-compare"></i> 소스 비교
                             </button>
                         </div>
-                        <button onclick="window.location.href='/admin'" class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-smooth">
+                        <button onclick="window.open('/admin', '_blank')" class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-smooth">
                             <i class="fas fa-chart-line"></i>
                             <span>대시보드</span>
                         </button>
@@ -904,6 +907,8 @@
             }
 
             showScreen('monitoring');
+            // 진행 중 탭 표시
+            document.getElementById('monitoringTabBtn').classList.remove('hidden');
             // 이전 분석 카드/로그/thinking 초기화
             document.getElementById('agentResultCards').innerHTML = '';
             document.getElementById('logContainer').innerHTML = '';
@@ -1019,12 +1024,14 @@
                     eventSource.close();
                     outputFileName = output_file;
                     addLog('done', '✅ 분석 완료!');
+                    document.getElementById('monitoringTabBtn').classList.add('hidden');
                     setTimeout(showResult, 1000);
                     break;
 
                 case 'error':
                     eventSource.close();
                     addLog('error', `❌ 오류: ${message}`);
+                    document.getElementById('monitoringTabBtn').classList.add('hidden');
                     setTimeout(() => {
                         alert(message);
                         showScreen('upload');
@@ -1096,6 +1103,14 @@
             return names[agent] || agent;
         }
 
+        // 중국어·아랍어·일본어 필터 (Ollama가 생성하는 비한국어 문자 제거)
+        function filterForbiddenChars(text) {
+            return text
+                .replace(/[\u4E00-\u9FFF\u3040-\u30FF\u31F0-\u31FF\u0600-\u06FF\u0750-\u077F]/g, '')
+                .replace(/ {2,}/g, ' ')
+                .trim();
+        }
+
         function updateThinkingPanel(agent, text) {
             const logContainer = document.getElementById('logContainer');
             const label = document.getElementById('thinkingAgentLabel');
@@ -1117,9 +1132,10 @@
                 logContainer.appendChild(row);
             }
 
-            // 마지막 500자만 표시 (너무 길면 스크롤 버벅임)
+            // 마지막 500자만 표시 (너무 길면 스크롤 버벅임) + 중국어 등 금지 문자 제거
             const maxLen = 500;
-            const preview = text.length > maxLen ? text.slice(-maxLen) : text;
+            const raw = text.length > maxLen ? text.slice(-maxLen) : text;
+            const preview = filterForbiddenChars(raw);
             const agentName = getAgentName(agent);
 
             row.innerHTML =
@@ -1260,6 +1276,7 @@
         document.getElementById('cancelBtn').addEventListener('click', async () => {
             if (currentJobId) {
                 await fetch(`/api/job/${currentJobId}/cancel`, { method: 'POST' });
+                document.getElementById('monitoringTabBtn').classList.add('hidden');
                 showScreen('upload');
             }
         });
